@@ -1,6 +1,7 @@
 package org.dbpedia.databus.derive
 
-import net.sansa_stack.rdf.spark.io.{ErrorParseMode, NTripleReader, WarningParseMode}
+import net.sansa_stack.rdf.spark.io._
+import org.apache.jena.riot.Lang
 import org.apache.spark.sql.SparkSession
 
 class SansaRdfParser {
@@ -18,8 +19,11 @@ class SansaRdfParser {
 
     val s = System.currentTimeMillis()
 
-    println(s"parsed: ${NTripleReader.load(spark,filePath,ErrorParseMode.SKIP,WarningParseMode.SKIP).count()}")
+    val inlang: Lang = Lang.NQUADS
+    val triples = spark.rdf(inlang)(filePath)
 
-    println(s"time: ${(System.currentTimeMillis()-s)/1000}s")
+//    println(s"parsed: ${NTripleReader.load(spark,filePath,ErrorParseMode.SKIP,WarningParseMode.SKIP).count()}")
+//
+//    println(s"time: ${(System.currentTimeMillis()-s)/1000}s")
   }
 }
