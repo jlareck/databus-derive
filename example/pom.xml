@@ -19,19 +19,21 @@
                 <version>1.0-SNAPSHOT</version>
                 <configuration>
                     <versions>
-                        <version>https://databus.dbpedia.org/dbpedia/enrichment/specific-mappingbased-properties/2019.03.01</version>
+                        <version>https://databus.dbpedia.org/dbpedia/enrichment/mappingbased-literals/2019.03.01</version>
                     </versions>
                 </configuration>
                 <executions>
                     <execution>
                         <phase>initialize</phase>
                         <goals>
-                            <goal>copy-parse</goal>
+                            <goal>clone-parse</goal>
                         </goals>
                     </execution>
                 </executions>
             </plugin>
+
         </plugins>
+
     </build>
 
 </project>
