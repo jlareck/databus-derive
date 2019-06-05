@@ -3,14 +3,12 @@ package org.dbpedia.databus.derive.io
 import java.io.{ByteArrayOutputStream, File}
 
 import net.sansa_stack.rdf.spark.io.{ErrorParseMode, NTripleReader, WarningParseMode}
-
 import org.apache.commons.io.FileUtils
 import org.apache.jena.riot.RDFFormat
 import org.apache.jena.graph.Triple
 import org.apache.jena.riot.system.{ErrorHandlerFactory, StreamRDFWriter}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{SQLContext, SparkSession}
-
 import org.slf4j.Logger
 
 import scala.io.{Codec, Source}
@@ -25,10 +23,13 @@ object SansaRdfIO {
   def parseNtriples(file: File)(implicit sparkSession: SparkSession): RDD[Triple] ={
 
     NTripleReader.load(sparkSession,file.getAbsolutePath,errMode,wrnMode,checkRDFTerms,logger)
+
   }
 
-  def writeNTriples(dataset: RDD[Triple], sinkPath: String)
+  def writeNTriples(dataset: RDD[Triple], sinkFile: File)
                    (implicit sqlContext: SQLContext): Unit = {
+
+    val sinkPath = sinkFile.getAbsolutePath
 
     val compression = classOf[org.apache.hadoop.io.compress.BZip2Codec]
 
@@ -36,7 +37,8 @@ object SansaRdfIO {
       .saveAsTextFile(s"$sinkPath.parsed",compression)
 
     // workaround of spark folder structure to databus structure
-    FileUtils.moveFile(new File(s"$sinkPath.parsed/part-00000.bz2"),new File(sinkPath))
+    sinkFile.delete()
+    FileUtils.moveFile(new File(s"$sinkPath.parsed/part-00000.bz2"),sinkFile)
     FileUtils.deleteDirectory(new File(s"$sinkPath.parsed"))
   }
 

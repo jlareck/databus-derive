@@ -65,7 +65,6 @@
             <artifactId>maven-project</artifactId>
             <version>2.2.0</version>
         </dependency>
-
         <dependency>
             <groupId>com.github.pathikrit</groupId>
             <artifactId>better-files_${scala.compat.version}</artifactId>

@@ -15,10 +15,15 @@ object FileDownloader {
 
     val conn = url.openConnection()
 
-    val cis = new MyInputStream(conn.getInputStream,conn.getContentLengthLong)
+    val cis = new LoggingInputStream(conn.getInputStream,conn.getContentLengthLong, 1L << 19)
 
     val fos = new FileOutputStream(file)
 
-    IOUtils.copy(cis,fos)
+    try {
+      IOUtils.copy(cis,fos)
+    } finally {
+      fos.close()
+      cis.close()
+    }
   }
 }

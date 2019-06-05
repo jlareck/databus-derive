@@ -1,21 +1,29 @@
 package org.dbpedia.databus.derive
 
-import java.io.{ByteArrayOutputStream, File}
+import java.io.{File, FileInputStream, FileWriter}
 import java.net.URL
 import java.util
 
 import org.apache.commons.io.FileUtils
 import org.apache.jena.query._
-import org.apache.jena.rdf.model.{Model, ModelFactory}
-import org.apache.jena.riot.{RDFDataMgr, RDFFormat, RDFLanguages}
+import org.apache.jena.rdf.model.Model
+import org.apache.jena.riot.{RDFDataMgr, RDFLanguages}
+import org.apache.maven.model.io.xpp3.{MavenXpp3Reader, MavenXpp3Writer}
 import org.apache.maven.plugin.AbstractMojo
 import org.apache.maven.plugins.annotations._
 import org.apache.spark.sql.SparkSession
 import org.dbpedia.databus.derive.download.FileDownloader
+import org.dbpedia.databus.derive.io.SansaRdfIO
 import org.dbpedia.databus.sparql.DataidQueries
 
 import scala.collection.JavaConverters._
 
+/** @author Marvin Hofer
+  *
+  * mvn databus-derive:clone-parse
+  *
+  * MAVEN Goal: retrieve and parse DBpedia databus datasets by version
+  */
 @Mojo(name = "clone-parse")//, defaultPhase = LifecyclePhase.TEST, threadSafe = true)
 class CloneParseGoal extends AbstractMojo {
 
@@ -33,12 +41,17 @@ class CloneParseGoal extends AbstractMojo {
   @Parameter(defaultValue = "${project.artifactId}", readonly = true)
   val artifactId: String = null
 
-//  @Parameter(defaultValue = "${project.version}", readonly = true)
-//  val version: String = null
+  @Parameter(defaultValue = "${project.version}", readonly = true)
+  val version: String = null
 
   @Parameter(defaultValue = "${project.build.directory}", readonly = true)
   val buildDirectory: File = null
 
+  /**
+    * List of dataset version IRIs
+    *
+    * pom.xml > build > plugins > plugin > configuration > versions > version*
+    */
   @Parameter
   val versions: util.ArrayList[String] = new util.ArrayList[String]
 
@@ -52,11 +65,17 @@ class CloneParseGoal extends AbstractMojo {
 
         val (pomUrl,artifactId,versionId,files) = handleVersion(version)
 
-        val downloadDir = new File(buildDirectory,s"$artifactId/$versionId")
+        val downloadDir = new File(buildDirectory,s"databus/$artifactId/$versionId")
 
         downloadPreData(pomUrl,files,downloadDir)
 
-//        parsePreData(downloadDir)
+        val targetDir = new File(sessionRoot,s"$artifactId/$versionId")
+
+        parsePreData(downloadDir,targetDir)
+
+        copyModulePom(downloadDir,targetDir)
+
+        addModuleToGroupPom(new File(sessionRoot,"/pom.xml"),artifactId)
       })
     }
   }
@@ -91,6 +110,7 @@ class CloneParseGoal extends AbstractMojo {
 
 
   /**
+    * download single files into target/databus/$artifact/$version
     *
     * @param pomUrl url of associated pom file
     * @param files list of download urls of single files
@@ -115,17 +135,69 @@ class CloneParseGoal extends AbstractMojo {
     if( ! pomFile.exists()) FileDownloader.downloadUrlToFile(new URL(pomUrl), pomFile)
   }
 
-  def parsePreData(sourceDir: File): Unit = {
+  /**
+    * parsing raw databus data using SANSA-Stack
+    *
+    * @param sourceDir directory/file containing raw data
+    * @param targetDir directory/file to write parsed data
+    */
+  def parsePreData(sourceDir: File, targetDir: File): Unit = {
 
     val worker = "*"
+
+    val spark_local_dir = s"$sourceDir/spark-local-dir/"
 
     val sparkSession = SparkSession.builder()
       .master(s"local[$worker]")
       .appName("Test")
-      .config("spark.local.dir",s"$sourceDir/spark-local-dir/")
+      .config("spark.local.dir",spark_local_dir)
       .getOrCreate()
+
+    sourceDir.listFiles().filter(_.isFile).foreach( file => {
+
+      val parsed = SansaRdfIO.parseNtriples(file)(sparkSession)
+
+      SansaRdfIO.writeNTriples(parsed,new File(targetDir,file.getName))(sqlContext = sparkSession.sqlContext)
+    })
+
+    sparkSession.close()
+
+    FileUtils.deleteDirectory(new File(spark_local_dir))
   }
 
+  def copyModulePom(sourceDir: File, targetDir: File): Unit = {
+
+    val reader = new MavenXpp3Reader
+    val artifactPom = reader.read(new FileInputStream(new File(sourceDir.getParent,"/pom.xml")))
+
+    artifactPom.getParent.setGroupId(groupId)
+    artifactPom.setGroupId(groupId)
+
+    val writer = new MavenXpp3Writer
+    writer.write(new FileWriter(new File(targetDir.getParent, "/pom.xml")), artifactPom)
+  }
+
+  def addModuleToGroupPom(pom: File, module: String): Unit ={
+
+    val reader = new MavenXpp3Reader
+    val groupPom = reader.read(new FileInputStream(pom))
+
+    groupPom.addModule(module)
+
+    val writer = new MavenXpp3Writer
+    writer.write(new FileWriter(pom), groupPom)
+  }
+
+  /**
+    * toString of metadata information
+    *
+    * @param dataidUrl URL of corresponding dataid
+    * @param pom URL of corresponding deployment pom
+    * @param artifact dataset artifact
+    * @param version dataset version
+    * @param files list of URLs pointing to related dataset single files
+    * @return
+    */
   def info(dataidUrl: String, pom: String, artifact: String, version: String, files: Int) : String =
     s"""
        |Found dataset at: $dataidUrl

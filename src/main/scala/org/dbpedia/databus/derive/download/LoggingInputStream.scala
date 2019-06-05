@@ -2,8 +2,9 @@ package org.dbpedia.databus.derive.download
 
 import java.io.{IOException, InputStream}
 
-class MyInputStream(in: InputStream, length: Long) extends InputStream {
+class LoggingInputStream(in: InputStream, length: Long, step: Long) extends InputStream {
 
+  private var next = step
   private val pretty = true
   private var bytes = 0L
 
@@ -42,13 +43,19 @@ class MyInputStream(in: InputStream, length: Long) extends InputStream {
 
   private def count(read: Long, close: Boolean = false) {
 
-    if (bytes + read < bytes) throw new IOException("invalid byte count")
-    bytes += read
 
-    print(s"read $bytes of $length")
+      if (bytes + read < bytes) throw new IOException("invalid byte count")
+      bytes += read
 
-    if (close || ! pretty) println
-    else print("               \r")
+    if (close || bytes >= next)
+    {
+      print(s"read $bytes of $length")
+
+      if (close || ! pretty) println
+      else print("               \r")
+      next = (bytes / step + 1) * step
+    }
+
   }
 }
 
