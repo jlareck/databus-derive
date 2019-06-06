@@ -3,6 +3,7 @@ package org.dbpedia.databus.derive.io
 import java.io.{ByteArrayOutputStream, File}
 
 import net.sansa_stack.rdf.spark.io.{ErrorParseMode, NTripleReader, WarningParseMode}
+
 import org.apache.commons.io.FileUtils
 import org.apache.jena.riot.RDFFormat
 import org.apache.jena.graph.Triple
@@ -20,10 +21,9 @@ object SansaRdfIO {
   def checkRDFTerms: Boolean = true
   def logger: Logger = ErrorHandlerFactory.noLogger
 
-  def parseNtriples(file: File)(implicit sparkSession: SparkSession): RDD[Triple] ={
+  def parseNtriples(file: File)(implicit sparkSession: SparkSession): RDD[Triple] = {
 
     NTripleReader.load(sparkSession,file.getAbsolutePath,errMode,wrnMode,checkRDFTerms,logger)
-
   }
 
   def writeNTriples(dataset: RDD[Triple], sinkFile: File)

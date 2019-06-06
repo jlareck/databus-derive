@@ -1,9 +1,12 @@
 package javacode;
 
+import net.sansa_stack.rdf.spark.riot.tokens.TokenizerTextForgiving;
 import org.apache.jena.graph.Triple;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.apache.jena.atlas.iterator.PeekIterator;
@@ -19,6 +22,9 @@ import org.apache.jena.riot.system.StreamRDF;
 import org.apache.jena.riot.tokens.Token;
 import org.apache.jena.riot.tokens.TokenType;
 import org.apache.jena.riot.tokens.Tokenizer;
+import org.dbpedia.databus.derive.io.CustomRdfIO;
+import org.dbpedia.databus.derive.io.ExtTriple;
+import org.dbpedia.databus.derive.io.NtErrorHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +35,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class LangNTriplesSkipBad2 implements Iterator<Triple>
 {
-    private static Logger messageLog = LoggerFactory.getLogger(net.sansa_stack.rdf.spark.riot.lang.LangNTriplesSkipBad.class) ;
+//    private static Logger messageLog = LoggerFactory.getLogger(net.sansa_stack.rdf.spark.riot.lang.LangNTriplesSkipBad.class) ;
     private RiotException bad = null;
 
     @Override
@@ -77,11 +83,12 @@ public final class LangNTriplesSkipBad2 implements Iterator<Triple>
 
         @Override
         protected final Triple parseOne() {
+
             Triple triple = null;
             boolean needSkip = false;
-            String currentLine = "";
-//			System.err.println("process1");
+
             try {
+
                 Token sToken = nextToken();
 //				System.err.println("stoken="+sToken);
                 if (sToken.isEOF())
@@ -90,51 +97,43 @@ public final class LangNTriplesSkipBad2 implements Iterator<Triple>
                 checkIRIOrBNode(sToken);
                 needSkip = false;
 
-                Node s = tokenAsNode(sToken);
-
-                currentLine += s.toString();
-
                 Token pToken = nextToken();
 //				System.err.println("ptoken="+pToken);
-                if (pToken.isEOF())
+                if (pToken.isEOF()) {
                     exception(pToken, "Premature end of file: %s", pToken);
+                }
                 needSkip = true;
                 checkIRI(pToken);
                 needSkip = false;
 
-                currentLine += pToken.asString();
-
                 Token oToken = nextToken();
 //				System.err.println("otoken="+oToken);
-                if (oToken.isEOF())
+                if (oToken.isEOF()) {
                     exception(oToken, "Premature end of file: %s", oToken);
+                }
                 needSkip = true;
                 checkRDFTerm(oToken);
                 needSkip = false;
-
-                currentLine += oToken.asString();
 
                 // Check in createTriple - but this is cheap so do it anyway.
                 Token x = nextToken();
 //				System.err.println("ztoken="+x);
 
-                if (x.getType() != TokenType.DOT)
+                if (x.getType() != TokenType.DOT) {
                     exception(x, "Triple not terminated by DOT: %s", x);
+                }
 
-
+                Node s = tokenAsNode(sToken);
                 Node p = tokenAsNode(pToken);
                 Node o = tokenAsNode(oToken);
                 triple = profile.createTriple(s, p, o, sToken.getLine(), sToken.getColumn());
+
             } catch (RiotParseException e) {
                 if (needSkip) {
 //					System.err.println("skipping..."+e.getMessage());
                     ((TokenizerTextForgiving2)tokens).skipLine();
-                    currentLine += ((TokenizerTextForgiving2) tokens).getIgnoredParts();
-                    System.out.println(String.format("# error %s",currentLine));
                     nextToken();
                 } else {
-                    currentLine += ((TokenizerTextForgiving2) tokens).getIgnoredParts();
-                    System.out.println(String.format("# error %s",currentLine));
 //					System.err.println("bad:"+e.getMessage());
                     /** this is handled by {@link TokenizerTextForgiving} */
                 }
@@ -150,19 +149,16 @@ public final class LangNTriplesSkipBad2 implements Iterator<Triple>
         }
 
         @Override
-        public Lang getLang()   { return RDFLanguages.NTRIPLES ; }
-
+        public Lang getLang() { return RDFLanguages.NTRIPLES ; }
     }
 
-    private PeekIterator<Triple> base = null;
+    private PeekIterator2<Triple> base = null;
 
-    public LangNTriplesSkipBad2(TokenizerTextForgiving2 tokens, ParserProfile profile, StreamRDF dest) {
-        try { base = new PeekIterator<>(new Wrapper(tokens, profile, dest)); }
+    public LangNTriplesSkipBad2(TokenizerTextForgiving tokens, ParserProfile profile, StreamRDF dest) {
+        try { base = new PeekIterator2<Triple>(new Wrapper(tokens, profile, dest)); }
         catch (RiotException e) {
             bad = e;
             profile.getErrorHandler().warning(e.getMessage(), -1, -1);
         }
     }
-
-
 }
