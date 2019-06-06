@@ -24,8 +24,8 @@
         <encoding>UTF-8</encoding>
         <file.encoding>UTF-8</file.encoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <scala.version>2.11.8</scala.version>
-        <scala.compat.version>2.11</scala.compat.version>
+        <scala.version>2.12.7</scala.version>
+        <scala.compat.version>2.12</scala.compat.version>
         <!--maven license plugin-->
         <license.inceptionYear>2018</license.inceptionYear>
         <license.organizationName>Sebastian Hellmann (on behalf of the DBpedia Association)</license.organizationName>
@@ -70,20 +70,27 @@
             <artifactId>better-files_${scala.compat.version}</artifactId>
             <version>3.8.0</version>
         </dependency>
+        <!--<dependency>-->
+            <!--<groupId>net.sansa-stack</groupId>-->
+            <!--<artifactId>sansa-rdf-spark_${scala.compat.version}</artifactId>-->
+            <!--<version>0.5.0</version>-->
+            <!--<exclusions>-->
+                <!--<exclusion>-->
+                    <!--<groupId>org.slf4j</groupId>-->
+                    <!--<artifactId>slf4j-log4j12</artifactId>-->
+                <!--</exclusion>-->
+                <!--<exclusion>-->
+                    <!--<groupId>log4j</groupId>-->
+                    <!--<artifactId>log4j</artifactId>-->
+                <!--</exclusion>-->
+            <!--</exclusions>-->
+        <!--</dependency>-->
+
+        <!-- https://mvnrepository.com/artifact/org.apache.jena/jena-core -->
         <dependency>
-            <groupId>net.sansa-stack</groupId>
-            <artifactId>sansa-rdf-spark_${scala.compat.version}</artifactId>
-            <version>0.5.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>log4j</groupId>
-                    <artifactId>log4j</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>org.apache.jena</groupId>
+            <artifactId>jena-rdfconnection</artifactId>
+            <version>3.9.0</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-compress -->
@@ -93,6 +100,11 @@
             <version>1.18</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.typesafe.scala-logging</groupId>
+            <artifactId>scala-logging_${scala.compat.version}</artifactId>
+            <version>3.9.0</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
         <!--<dependency>-->
             <!--<groupId>org.slf4j</groupId>-->
@@ -106,21 +118,35 @@
             <version>1.7.16</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.typelevel/cats-effect -->
         <!--<dependency>-->
-            <!--<groupId>org.slf4j</groupId>-->
-            <!--<artifactId>slf4j-api</artifactId>-->
-            <!--<version>1.7.25</version>-->
+            <!--<groupId>org.typelevel</groupId>-->
+            <!--<artifactId>cats-effect_2.11</artifactId>-->
+            <!--<version>1.3.1</version>-->
         <!--</dependency>-->
-        <!--<dependency>-->
-            <!--<groupId>org.slf4j</groupId>-->
-            <!--<artifactId>slf4j-log4j12</artifactId>-->
-            <!--<version>1.7.25</version>-->
-        <!--</dependency>-->
-        <!--<dependency>-->
-            <!--<groupId>log4j</groupId>-->
-            <!--<artifactId>log4j</artifactId>-->
-            <!--<version>1.2.17</version>-->
-        <!--</dependency>-->
+
+        <!-- https://mvnrepository.com/artifact/co.fs2/fs2-core -->
+        <dependency>
+            <groupId>co.fs2</groupId>
+            <artifactId>fs2-core_${scala.compat.version}</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/co.fs2/fs2-io -->
+        <dependency>
+            <groupId>co.fs2</groupId>
+            <artifactId>fs2-io_${scala.compat.version}</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+
+        <!-- https://mvnrepository.com/artifact/io.monix/monix -->
+        <dependency>
+            <groupId>io.monix</groupId>
+            <artifactId>monix_${scala.compat.version}</artifactId>
+            <version>2.3.3</version>
+        </dependency>
+
 
 
     </dependencies>
@@ -146,7 +172,7 @@
                             </execution>
                         </executions>
                         <configuration>
-                            <executable>org.dbpedia.databus.derive.DeriveCli</executable>
+                            <executable>run.sh</executable>
                             <arguments>
                                 <argument>${project.groupId}</argument>
                                 <argument>${project.artifactId}</argument>
@@ -227,6 +253,15 @@
                 </executions>
                 <configuration>
                     <recompileMode>incremental</recompileMode>
+                    <launchers>
+                        <launcher>
+                            <id>cli</id>
+                            <mainClass>org.dbpedia.databus.derive.DeriveCli</mainClass>
+                            <!--<jvmArgs>-->
+                                <!--<jvmArg>${vmXmx}</jvmArg>-->
+                            <!--</jvmArgs>-->
+                        </launcher>
+                    </launchers>
                 </configuration>
             </plugin>
             <plugin>
@@ -241,6 +276,29 @@
                 <configuration>
                     <skipErrorNoDescriptorsFound>false</skipErrorNoDescriptorsFound>
                 </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.1.1</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <archive>
+                        <manifest>
+                            <mainClass>org.dbpedia.databus.derive.DeriveCli</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
+                        <phase>package</phase> <!-- bind to the packaging phase -->
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

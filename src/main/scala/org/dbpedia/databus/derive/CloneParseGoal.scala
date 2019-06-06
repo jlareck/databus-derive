@@ -7,13 +7,12 @@ import java.util
 import org.apache.commons.io.FileUtils
 import org.apache.jena.query._
 import org.apache.jena.rdf.model.Model
-import org.apache.jena.riot.{RDFDataMgr, RDFLanguages}
+import org.apache.jena.riot.{Lang, RDFDataMgr, RDFLanguages}
 import org.apache.maven.model.io.xpp3.{MavenXpp3Reader, MavenXpp3Writer}
 import org.apache.maven.plugin.AbstractMojo
 import org.apache.maven.plugins.annotations._
-import org.apache.spark.sql.SparkSession
 import org.dbpedia.databus.derive.download.FileDownloader
-import org.dbpedia.databus.derive.io.SansaRdfIO
+import org.dbpedia.databus.derive.io.{ParsingStats, RobustRDFLinesParser}
 import org.dbpedia.databus.sparql.DataidQueries
 
 import scala.collection.JavaConverters._
@@ -73,9 +72,9 @@ class CloneParseGoal extends AbstractMojo {
 
         parsePreData(downloadDir,targetDir)
 
-        copyModulePom(downloadDir,targetDir)
-
-        addModuleToGroupPom(new File(sessionRoot,"/pom.xml"),artifactId)
+//        copyModulePom(downloadDir,targetDir)
+//
+//        addModuleToGroupPom(new File(sessionRoot,"/pom.xml"),artifactId)
       })
     }
   }
@@ -147,20 +146,40 @@ class CloneParseGoal extends AbstractMojo {
 
     val spark_local_dir = s"$sourceDir/spark-local-dir/"
 
-    val sparkSession = SparkSession.builder()
-      .master(s"local[$worker]")
-      .appName("Test")
-      .config("spark.local.dir",spark_local_dir)
-      .getOrCreate()
+//    val sparkSession = SparkSession.builder()
+//      .master(s"local[$worker]")
+//      .appName("Test")
+//      .config("spark.local.dir",spark_local_dir)
+//      .getOrCreate()
 
     sourceDir.listFiles().filter(_.isFile).foreach( file => {
 
-      val parsed = SansaRdfIO.parseNtriples(file)(sparkSession)
+      import better.files.File
 
-      SansaRdfIO.writeNTriples(parsed,new File(targetDir,file.getName))(sqlContext = sparkSession.sqlContext)
+      var rdlParser = new RobustRDFLinesParser(
+        Some(File(file.getAbsolutePath)),
+        None,
+        None,
+        None,
+        Lang.NTRIPLES,
+        Lang.NTRIPLES,
+        true,
+        false,
+        1,
+        100
+      )
+
+      rdlParser.doParse() map { stats =>
+
+        println(stats getOrElse ParsingStats())
+      }
+//      val parsed = SansaRdfIO.parseNtriples(file)(sparkSession)
+//
+//
+//      SansaRdfIO.writeNTriples(parsed,new File(targetDir,file.getName))(sqlContext = sparkSession.sqlContext)
     })
 
-    sparkSession.close()
+//    sparkSession.close()
 
     FileUtils.deleteDirectory(new File(spark_local_dir))
   }
@@ -171,6 +190,7 @@ class CloneParseGoal extends AbstractMojo {
     val artifactPom = reader.read(new FileInputStream(new File(sourceDir.getParent,"/pom.xml")))
 
     artifactPom.getParent.setGroupId(groupId)
+//    artifactPom.getParent.setVersion(version)
     artifactPom.setGroupId(groupId)
 
     val writer = new MavenXpp3Writer

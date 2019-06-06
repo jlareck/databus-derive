@@ -7,6 +7,7 @@ class LoggingInputStream(in: InputStream, length: Long, step: Long) extends Inpu
   private var next = step
   private val pretty = true
   private var bytes = 0L
+  private val nanos: Long = System.nanoTime()
 
   override def read(): Int = {
     val read = in.read
@@ -43,50 +44,40 @@ class LoggingInputStream(in: InputStream, length: Long, step: Long) extends Inpu
 
   private def count(read: Long, close: Boolean = false) {
 
-
-      if (bytes + read < bytes) throw new IOException("invalid byte count")
-      bytes += read
+    if (bytes + read < bytes) throw new IOException("invalid byte count")
+    bytes += read
 
     if (close || bytes >= next)
     {
-      print(s"read $bytes of $length")
+      val millis = (System.nanoTime - nanos) / 1000000
+
+      print(s"read ${formatBytes(bytes)} of ${formatBytes(length)} (avg. ${formatRate(bytes, millis)})")
 
       if (close || ! pretty) println
       else print("               \r")
       next = (bytes / step + 1) * step
     }
+  }
 
+  private def formatBytes(bytes: Long): String =
+  {
+    if (bytes <  0) "? B"
+    else if (bytes < 1024) bytes+" B"
+    else if (bytes < 1048576) (bytes / 1024F)+" KB"
+    else if (bytes < 1073741824) (bytes / 1048576F)+" MB"
+    else (bytes / 1073741824F)+" GB"
+  }
+
+  private def formatRate(bytes: Long, millis: Long): String =
+  {
+    if (millis == 0) "? B/s"
+    else if (bytes / millis < 1024) (bytes / 1.024F / millis)+" KB/s"
+    else (bytes / 1048.576F / millis)+" MB/s"
   }
 }
 
-//object MyInputStreamLogger {
-//
-//  private val pretty = true
-//  private var next: Long = 1L
-//  private val nanos: Long = System.nanoTime()
-//
-//  def log(bytes: Long, close: Boolean): Unit =
-//  {
-//    if (close || bytes >= next)
-//    {
-//      val millis = (System.nanoTime - nanos) / 1000000
-//      // TODO: add percentage and ETA
-//      print("read "+formatBytes(bytes)+" of "+formatBytes(length)+" in "+formatMillis(millis)+" ("+formatRate(bytes, millis)+")")
-//      if (close || ! pretty) println // new line
-//      else print("                    \r") // spaces to overwrite end of previous line, back to start of line
-//      next = (bytes / step + 1) * step
-//    }
-//  }
-//
-//  private def formatBytes(bytes: Long): String =
-//  {
-//    if (bytes <  0) "? B"
-//    else if (bytes < 1024) bytes+" B"
-//    else if (bytes < 1048576) (bytes / 1024F)+" KB"
-//    else if (bytes < 1073741824) (bytes / 1048576F)+" MB"
-//    else (bytes / 1073741824F)+" GB"
-//  }
-//
+// TODO formatting stuff
+
 //  private def formatMillis(millis: Long): String =
 //  {
 //    val secs = millis / 1000
@@ -95,12 +86,5 @@ class LoggingInputStream(in: InputStream, length: Long, step: Long) extends Inpu
 //    else zeros(secs / 3600)+":"+zeros(secs % 3600 / 60)+":"+zeros(secs % 60)+" hours"
 //  }
 //
-//  private def formatRate(bytes: Long, millis: Long): String =
-//  {
-//    if (millis == 0) "? B/s"
-//    else if (bytes / millis < 1024) (bytes / 1.024F / millis)+" KB/s"
-//    else (bytes / 1048.576F / millis)+" MB/s"
-//  }
 //
 //  private def zeros(num: Long): String = if (num < 10) "0"+num else num.toString
-//}
