@@ -1,39 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
-    <groupId>example</groupId>
-    <artifactId>group-metadata</artifactId>
-    <packaging>pom</packaging>
-    <version>2019.05.01</version>
-    <!--<modules>-->
-        <!--<module>test</module>-->
-    <!--</modules>-->
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.dbpedia.databus</groupId>
-                <artifactId>databus-derive-maven-plugin</artifactId>
-                <version>1.0-SNAPSHOT</version>
-                <configuration>
-                    <versions>
-                        <version>https://databus.dbpedia.org/dbpedia/enrichment/mappingbased-literals/2019.03.01</version>
-                    </versions>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>initialize</phase>
-                        <goals>
-                            <goal>clone-parse</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-        </plugins>
-
-    </build>
-
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>example</groupId>
+  <artifactId>group-metadata</artifactId>
+  <version>2019.05.01</version>
+  <packaging>pom</packaging>
+  <modules>
+    <module>mappingbased-literals</module>
+  </modules>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.dbpedia.databus</groupId>
+        <artifactId>databus-derive-maven-plugin</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <executions>
+          <execution>
+            <phase>initialize</phase>
+            <goals>
+              <goal>clone-parse</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <versions>
+            <version>https://databus.dbpedia.org/dbpedia/enrichment/mappingbased-literals/2019.03.01</version>
+          </versions>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

@@ -14,6 +14,11 @@ import org.slf4j.Logger
 
 import scala.io.{Codec, Source}
 
+/**
+  * @author Marvin Hofer
+  * @deprecated
+  *             line based rdf parser implementation using SANSA-Stack
+  */
 object SansaRdfIO {
 
   def errMode: ErrorParseMode.Value = ErrorParseMode.SKIP

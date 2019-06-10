@@ -13,10 +13,12 @@ import org.apache.maven.plugin.AbstractMojo
 import org.apache.maven.plugins.annotations._
 import org.apache.spark.sql.SparkSession
 import org.dbpedia.databus.derive.download.FileDownloader
-import org.dbpedia.databus.derive.io.SansaRdfIO
+import org.dbpedia.databus.derive.io.{CustomRdfIO, SansaRdfIO}
 import org.dbpedia.databus.sparql.DataidQueries
 
 import scala.collection.JavaConverters._
+import scala.sys.process._
+import scala.language.postfixOps
 
 /** @author Marvin Hofer
   *
@@ -155,14 +157,45 @@ class CloneParseGoal extends AbstractMojo {
 
     sourceDir.listFiles().filter(_.isFile).foreach( file => {
 
-      val parsed = SansaRdfIO.parseNtriples(file)(sparkSession)
+      val tripleReports = CustomRdfIO.parse(
+        sparkSession.sparkContext.textFile(file.getAbsolutePath,Runtime.getRuntime.availableProcessors()*3))
 
-      SansaRdfIO.writeNTriples(parsed,new File(targetDir,file.getName))(sqlContext = sparkSession.sqlContext)
+      CustomRdfIO.writeTripleReports(
+        tripleReports,
+        Some(new File(targetDir,s"${file.getName}.tmp")),
+        Some(new File(targetDir,s"${file.getName}.invalid.tmp"))
+      )
+
+      cleanFiles(targetDir,file)
+
+      // Deprecated
+      // SansaRdfIO.writeNTriples(parsed,new File(targetDir,file.getName))(sqlContext = sparkSession.sqlContext)
+      // val parsed = SansaRdfIO.parseNtriples(file)(sparkSession)
     })
 
     sparkSession.close()
 
     FileUtils.deleteDirectory(new File(spark_local_dir))
+  }
+
+  def cleanFiles(targetDir: File, file: File): Unit = {
+
+    val tripleSink_spark = new File(targetDir,s"${file.getName}.tmp")
+    val rerpotSink_spark = new File(targetDir,s"${file.getName}.invalid.tmp")
+
+    val findTriples = s"find ${tripleSink_spark.getAbsolutePath}/ -name part*" !!
+    val concatTriples = s"cat $findTriples" #> new File(targetDir,file.getName) !
+
+    if( concatTriples == 0 ) FileUtils.deleteDirectory(tripleSink_spark)
+    else System.err.println(s"[WARN] failed to merge ${file.getName}")
+
+    val findReports = s"find ${rerpotSink_spark.getAbsolutePath}/ -name part*" !!
+    val concatReports = s"cat $findReports" #> new File(targetDir,s"${file.getName}.invalid") !
+
+    if( concatReports == 0 ) FileUtils.deleteDirectory(rerpotSink_spark)
+    else System.err.println(s"[WARN] failed to merge ${file.getName}.invalid")
+
+    // TODO cv api needed
   }
 
   def copyModulePom(sourceDir: File, targetDir: File): Unit = {
