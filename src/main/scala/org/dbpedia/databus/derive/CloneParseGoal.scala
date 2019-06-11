@@ -156,15 +156,15 @@ class CloneParseGoal extends AbstractMojo {
       .getOrCreate()
 
     sourceDir.listFiles().filter(_.isFile).foreach( file => {
-
-      val tripleReports = CustomRdfIO.parse(
-        sparkSession.sparkContext.textFile(file.getAbsolutePath,Runtime.getRuntime.availableProcessors()*3))
-
-      CustomRdfIO.writeTripleReports(
-        tripleReports,
-        Some(new File(targetDir,s"${file.getName}.tmp")),
-        Some(new File(targetDir,s"${file.getName}.invalid.tmp"))
-      )
+//
+//      val tripleReports = CustomRdfIO.parse(
+//        sparkSession.sparkContext.textFile(file.getAbsolutePath,Runtime.getRuntime.availableProcessors()*3))
+//
+//      CustomRdfIO.writeTripleReports(
+//        tripleReports,
+//        Some(new File(targetDir,s"${file.getName}.tmp")),
+//        Some(new File(targetDir,s"${file.getName}.invalid.tmp"))
+//      )
 
       cleanFiles(targetDir,file)
 

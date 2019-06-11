@@ -23,6 +23,10 @@ package object io {
     override def toString: String = s"${triple.getOrElse("")}${report.getOrElse("")}}"
   }
 
+  case class TripleReportString(triple: Option[String], report: Option[String] ) {
+    override def toString: String = s"${triple.getOrElse("")}${report.getOrElse("")}}"
+  }
+
   def cleanFiles(targetDir: File, file: File): Unit = {
 
     val tripleSink_spark = new File(targetDir,s"${file.getName}.tmp")

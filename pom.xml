@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <vmXmx>-Xmx10g</vmXmx>
+        <vmXmx>-Xmx24g</vmXmx>
         <encoding>UTF-8</encoding>
         <file.encoding>UTF-8</file.encoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

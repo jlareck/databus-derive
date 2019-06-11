@@ -4,6 +4,7 @@ import java.io.File
 
 import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.storage.StorageLevel
 import org.dbpedia.databus.derive.io.CustomRdfIO
 import scopt._
 
@@ -39,7 +40,7 @@ object DeriveCli {
     optionParser.parse(args,Config()) match {
       case Some(config) =>
 
-        val tmpSpark = java.util.UUID.randomUUID.toString
+        val tmpSpark = s"tmp.java.util.UUID.randomUUID.toString"
 
         val spark = SparkSession.builder()
           .appName("FLAT Triple Parser")
@@ -49,19 +50,28 @@ object DeriveCli {
           .config("spark.kryoserializer.buffer.max","512m")
           .getOrCreate()
 
-        val tripleReports = CustomRdfIO.parse(spark.sparkContext.textFile(
-          path = config.input.getAbsolutePath,
-          minPartitions = Runtime.getRuntime.availableProcessors()*3
-        ))
+        val sql = spark.sqlContext
+
+        val tripleReports = CustomRdfIO.parse(
+          sql.read.textFile(
+            config.input.getAbsolutePath)
+            .repartition(Runtime.getRuntime.availableProcessors()*3)
+        )(sql).persist(StorageLevel.DISK_ONLY)
 
         val tripleSink_spark = new File(s"${config.output.getAbsolutePath}.tmp")
         val reportSink_spark = new File(s"${config.report.getAbsolutePath}.tmp")
-
+//
+//        tripleReports.foreach( tripleReports =>
+//          {
+//            if(tripleReports.triple.isDefined) System.out.println(tripleReports.triple.get.toString)
+//            if(tripleReports.report.isDefined) System.out.println(tripleReports.report.get)
+//          })
+//
         CustomRdfIO.writeTripleReports(
           tripleReports = tripleReports,
           Some(tripleSink_spark),
           Some(reportSink_spark)
-        )
+        )(sql)
 
         val findTriples = s"find ${tripleSink_spark.getAbsolutePath}/ -name part*" !!
         val concatTriples = s"cat $findTriples" #> config.output !
@@ -80,7 +90,6 @@ object DeriveCli {
         FileUtils.deleteDirectory(new File(tmpSpark))
       case _ => optionParser.showUsage()
     }
-//    optionParser.parse()
   }
 }
 
