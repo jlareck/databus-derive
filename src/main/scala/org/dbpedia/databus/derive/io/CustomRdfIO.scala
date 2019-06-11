@@ -117,14 +117,14 @@ object CustomRdfIO {
       if(tripleSink.isDefined) {
         tripleReports.filter(_.triple.isDefined).map(_.triple.get)
           .write
-          .option("codec", "org.apache.hadoop.io.compress.Bzip2Codec")
+          .option("compression", "bzip2")
           .text(tripleSink.get.getAbsolutePath)
       }
 
       if(reportSink.isDefined) {
         tripleReports.filter(_.report.isDefined).map(_.report.get)
           .write
-          .option("codec", "org.apache.hadoop.io.compress.Bzip2Codec")
+          .option("compression", "bzip2")
           .text(reportSink.get.getAbsolutePath)
       }
     }

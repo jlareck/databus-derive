@@ -40,7 +40,7 @@ object DeriveCli {
     optionParser.parse(args,Config()) match {
       case Some(config) =>
 
-        val tmpSpark = s"tmp.java.util.UUID.randomUUID.toString"
+        val tmpSpark = s"tmp.${java.util.UUID.randomUUID.toString}"
 
         val spark = SparkSession.builder()
           .appName("FLAT Triple Parser")
