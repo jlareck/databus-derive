@@ -1,9 +1,16 @@
 package org.dbpedia.databus.derive
 
-import java.util.NoSuchElementException
+import java.io.File
 
+import org.apache.commons.io.FileUtils
+import org.apache.spark.sql.SparkSession
+import org.dbpedia.databus.derive.io.CustomRdfIO
 import scopt._
-import better.files.File
+
+import scala.sys.process._
+import scala.language.postfixOps
+
+case class Config(input: File = null, output: File = null, report: File = null)
 
 object DeriveCli {
 
@@ -11,25 +18,63 @@ object DeriveCli {
 
 //    implicit def betterFileRead = Read.reads(File(_))
 
-    val optionParser = new OptionParser[Foo]("foo"){
+    val optionParser = new OptionParser[Config]("foo"){
 
       head("Line based rdf parser", "0.1")
 
-      arg[String]("<line-based-rdf-file>").required().maxOccurs(1).action((f, p) => p.setT0(f))
+      arg[File]("<line-based-rdf-file>").required().maxOccurs(1).action((f, p) => p.copy(input = f))
 
-      opt[String]('o', "output-triple").maxOccurs(1).action((s, p) =>  p.setT1(s))
+      opt[File]('o', "output").required().maxOccurs(1).action((f, p) =>  p.copy(output = f))
 
-      opt[String]('r', "parse-report").maxOccurs(1).action((s, p) =>  p.setT1(s))
+      opt[File]('r', "report").required().maxOccurs(1).action((f, p) =>  p.copy(report = f))
 
       /*
-      -sparkMaster
-      -tmpDir
+        -sparkMaster
+        -tmpDir
        */
 
       help("help").text("prints this usage text")
     }
 
-    optionParser.parse(args,Foo()).orNull.run()
+    optionParser.parse(args,Config()) match {
+      case Some(config) =>
 
+        val spark = SparkSession.builder()
+          .appName("FLAT Triple Parser")
+          .master("local[*]")
+          .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+          .config("spark.kryoserializer.buffer.max","512m")
+          .getOrCreate()
+
+        val tripleReports = CustomRdfIO.parse(spark.sparkContext.textFile(
+          path = config.input.getAbsolutePath,
+          minPartitions = Runtime.getRuntime.availableProcessors()*3
+        ))
+
+        val tripleSink_spark = new File(s"${config.output.getAbsolutePath}.tmp")
+        val reportSink_spark = new File(s"${config.report.getAbsolutePath}.tmp")
+
+        CustomRdfIO.writeTripleReports(
+          tripleReports = tripleReports,
+          Some(tripleSink_spark),
+          Some(reportSink_spark)
+        )
+
+        val findTriples = s"find ${tripleSink_spark.getAbsolutePath}/ -name part*" !!
+        val concatTriples = s"cat $findTriples" #> config.output !
+
+        if( concatTriples == 0 ) FileUtils.deleteDirectory(tripleSink_spark)
+        else System.err.println(s"[WARN] failed to merge ${tripleSink_spark.getName}.tmp/*")
+
+        val findReports = s"find ${reportSink_spark.getAbsolutePath}/ -name part*" !!
+        val concatReports = s"cat $findReports" #> config.report !
+
+        if( concatReports == 0 ) FileUtils.deleteDirectory(reportSink_spark)
+        else System.err.println(s"[WARN] failed to merge ${reportSink_spark.getName}.tmp/*")
+
+      case _ => optionParser.showUsage()
+    }
+//    optionParser.parse()
   }
 }
+

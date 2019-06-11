@@ -1,9 +1,10 @@
 package org.dbpedia.databus.derive
 
-import java.io.ByteArrayOutputStream
+import java.io.{ByteArrayOutputStream, File}
 import java.util.Collections
 
 import net.sansa_stack.rdf.spark.io.ntriples.JenaTripleToNTripleString
+import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.BZip2Codec
 import org.apache.jena.graph.Triple
@@ -11,12 +12,35 @@ import org.apache.jena.riot.RDFDataMgr
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SaveMode
 
+import scala.sys.process._
+import scala.language.postfixOps
+
 package object io {
 
   case class RowObject[T](pos: Long, line: T)
 
   case class TripleReport(triple: Option[Triple], report: Option[String] ) {
     override def toString: String = s"${triple.getOrElse("")}${report.getOrElse("")}}"
+  }
+
+  def cleanFiles(targetDir: File, file: File): Unit = {
+
+    val tripleSink_spark = new File(targetDir,s"${file.getName}.tmp")
+    val rerpotSink_spark = new File(targetDir,s"${file.getName}.invalid.tmp")
+
+    val findTriples = s"find ${tripleSink_spark.getAbsolutePath}/ -name part*" !!
+    val concatTriples = s"cat $findTriples" #> new File(targetDir,file.getName) !
+
+    if( concatTriples == 0 ) FileUtils.deleteDirectory(tripleSink_spark)
+    else System.err.println(s"[WARN] failed to merge ${file.getName}")
+
+    val findReports = s"find ${rerpotSink_spark.getAbsolutePath}/ -name part*" !!
+    val concatReports = s"cat $findReports" #> new File(targetDir,s"${file.getName}.invalid") !
+
+    if( concatReports == 0 ) FileUtils.deleteDirectory(rerpotSink_spark)
+    else System.err.println(s"[WARN] failed to merge ${file.getName}.invalid")
+
+    // TODO cv api needed
   }
 
   def compression: Class[BZip2Codec] = classOf[org.apache.hadoop.io.compress.BZip2Codec]

@@ -21,6 +21,7 @@
     </licenses>
 
     <properties>
+        <vmXmx>-Xmx10g</vmXmx>
         <encoding>UTF-8</encoding>
         <file.encoding>UTF-8</file.encoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -218,6 +219,15 @@
                 </executions>
                 <configuration>
                     <recompileMode>incremental</recompileMode>
+                    <launchers>
+                        <launcher>
+                            <id>parse</id>
+                            <mainClass>org.dbpedia.databus.derive.DeriveCli</mainClass>
+                            <jvmArgs>
+                                <jvmArg>${vmXmx}</jvmArg>
+                            </jvmArgs>
+                        </launcher>
+                    </launchers>
                 </configuration>
             </plugin>
             <plugin>
