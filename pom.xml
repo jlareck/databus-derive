@@ -9,6 +9,7 @@
     <packaging>maven-plugin</packaging>
     <version>1.0-SNAPSHOT</version>
 
+    <!-- TODO -->
     <name>DBpedia Databus Derive Maven Plugin</name>
     <description>A Maven Plugin to prepare meta-data (DataIDs) and publish the resulting DataIDs to the Databus repository.</description>
     <url>http://dev.dbpedia.org/Databus%20Maven%20Plugin</url>
@@ -20,26 +21,33 @@
         </license>
     </licenses>
 
+    <!-- TODO -->
     <properties>
-        <vmXmx>-Xmx10g</vmXmx>
+        <!--5GB bz2 fusion-labels needs 64GB of heap on 64 workers-->
+        <vmXmx>-Xmx24g</vmXmx>
+
+        <!--encoding-->
         <encoding>UTF-8</encoding>
         <file.encoding>UTF-8</file.encoding>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!--scala-->
         <scala.version>2.11.8</scala.version>
         <scala.compat.version>2.11</scala.compat.version>
+
         <!--maven license plugin-->
         <license.inceptionYear>2018</license.inceptionYear>
         <license.organizationName>Sebastian Hellmann (on behalf of the DBpedia Association)</license.organizationName>
         <license.licenseName>agpl_v3</license.licenseName>
-        <!--github server corresponds to entry in ~/.m2/settings.xml-->
-        <github.global.server>github</github.global.server>
-        <!--<rdf4j.version>2.4.1</rdf4j.version>-->
+
         <maven.plugin.tools.version>3.6.0</maven.plugin.tools.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
     <dependencies>
+
+        <!--TODO cleaning-->
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
@@ -71,6 +79,8 @@
             <artifactId>better-files_${scala.compat.version}</artifactId>
             <version>3.8.0</version>
         </dependency>
+        <!--TODO upgrade to prevent postgres snapshot downloads
+        https://github.com/SANSA-Stack/SANSA-RDF-->
         <dependency>
             <groupId>net.sansa-stack</groupId>
             <artifactId>sansa-rdf-spark_${scala.compat.version}</artifactId>
@@ -117,39 +127,6 @@
 
     </dependencies>
 
-    <profiles>
-        <profile>
-            <!--
-            run with:
-            mvn exec:exec -P download-pre-release
-            -->
-            <id>cpp</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.3.2</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <executable>org.dbpedia.databus.derive.DeriveCli</executable>
-                            <arguments>
-                                <argument>${project.groupId}</argument>
-                                <argument>${project.artifactId}</argument>
-                            </arguments>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
     <reporting>
         <plugins>
             <plugin>
@@ -182,19 +159,6 @@
         <testSourceDirectory>src/test/scala</testSourceDirectory>
 
         <plugins>
-            <!--<plugin>-->
-                <!--<groupId>org.dbpedia.databus</groupId>-->
-                <!--<artifactId>databus-derive-maven-plugin</artifactId>-->
-                <!--<version>1.0-SNAPSHOT</version>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<phase>initialize</phase>-->
-                        <!--<goals>-->
-                            <!--<goal>copy-paste</goal>-->
-                        <!--</goals>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-            <!--</plugin>-->
             <plugin>
                 <!-- see http://davidb.github.com/scala-maven-plugin -->
                 <groupId>net.alchim31.maven</groupId>

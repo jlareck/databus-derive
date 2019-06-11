@@ -99,6 +99,13 @@ object CustomRdfIO {
   }
 }
 
+/**
+  * Combines Queued -Iterator, -ErrorHandler and parsed Triple to an Iterator
+  * @param triples
+  * @param reports
+  * @param lines
+  * @tparam T
+  */
 class CombineQueuesIterator[T](triples: Iterator[Triple],
 reports: QueuedErrorHandler, lines: QueuedIterator[String]) extends Iterator[TripleReport]{
 
@@ -121,6 +128,11 @@ reports: QueuedErrorHandler, lines: QueuedIterator[String]) extends Iterator[Tri
   }
 }
 
+/**
+  * Extends iterator class by adding element count and queue-buffer to iterated objects
+  * @param it
+  * @tparam T
+  */
 class QueuedIterator[T](it: Iterator[T]) extends Iterator[T] {
 
   protected var currentPosition = 0L
@@ -146,6 +158,12 @@ class QueuedIterator[T](it: Iterator[T]) extends Iterator[T] {
   }
 }
 
+/**
+  * Avoids Spark to force serialization
+  * @param constructor
+  * @param classTag$T
+  * @tparam T
+  */
 private class NonSerializableObjectWrapper[T: ClassTag](constructor: => T) extends AnyRef with Serializable {
   @transient private lazy val instance: T = constructor
 

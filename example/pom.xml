@@ -6,9 +6,6 @@
   <artifactId>group-metadata</artifactId>
   <version>2019.05.01</version>
   <packaging>pom</packaging>
-  <modules>
-    <module>mappingbased-literals</module>
-  </modules>
   <build>
     <plugins>
       <plugin>

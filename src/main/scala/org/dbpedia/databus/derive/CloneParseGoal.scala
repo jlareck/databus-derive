@@ -145,6 +145,7 @@ class CloneParseGoal extends AbstractMojo {
     */
   def parsePreData(sourceDir: File, targetDir: File): Unit = {
 
+
     val worker = "*"
 
     val spark_local_dir = s"$sourceDir/spark-local-dir/"
@@ -157,8 +158,9 @@ class CloneParseGoal extends AbstractMojo {
 
     sourceDir.listFiles().filter(_.isFile).foreach( file => {
 
+      //TODO File handling and naming
       val tripleReports = CustomRdfIO.parse(
-        sparkSession.sparkContext.textFile(file.getAbsolutePath,Runtime.getRuntime.availableProcessors()*3))
+        sparkSession.sparkContext.textFile(file.getAbsolutePath,Runtime.getRuntime.availableProcessors()*4))
 
       CustomRdfIO.writeTripleReports(
         tripleReports,

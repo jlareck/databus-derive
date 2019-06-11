@@ -10,13 +10,22 @@ import scopt._
 import scala.sys.process._
 import scala.language.postfixOps
 
+//import org.apache.log4j.Level
+//import org.apache.log4j.Logger
+
 case class Config(input: File = null, output: File = null, report: File = null)
 
+/**
+  * @author Marvin Hofer
+  *         Runs CustomRdfIo.parse/write from command line
+  */
 object DeriveCli {
 
   def main(args: Array[String]): Unit = {
 
-//    implicit def betterFileRead = Read.reads(File(_))
+
+//    Logger.getLogger("org").setLevel(Level.WARN)
+//    Logger.getLogger("akka").setLevel(Level.WARN)
 
     val optionParser = new OptionParser[Config]("foo"){
 
@@ -24,11 +33,11 @@ object DeriveCli {
 
       arg[File]("<line-based-rdf-file>").required().maxOccurs(1).action((f, p) => p.copy(input = f))
 
-      opt[File]('o', "output").required().maxOccurs(1).action((f, p) =>  p.copy(output = f))
+      opt[File]('o', "output-file").required().maxOccurs(1).action((f, p) =>  p.copy(output = f))
 
-      opt[File]('r', "report").required().maxOccurs(1).action((f, p) =>  p.copy(report = f))
+      opt[File]('r', "report-file").required().maxOccurs(1).action((f, p) =>  p.copy(report = f))
 
-      /*
+      /* TODO
         -sparkMaster
         -tmpDir
        */
@@ -39,7 +48,14 @@ object DeriveCli {
     optionParser.parse(args,Config()) match {
       case Some(config) =>
 
-        val tmpSpark = java.util.UUID.randomUUID.toString
+        val tmpSpark = s"tmp.${java.util.UUID.randomUUID.toString}"
+
+        System.err.println(
+          """
+            |-----------------------------------
+            | Line Based RDF Validation (SPARK)
+            |-----------------------------------
+          """.stripMargin)
 
         val spark = SparkSession.builder()
           .appName("FLAT Triple Parser")
@@ -54,6 +70,8 @@ object DeriveCli {
           minPartitions = Runtime.getRuntime.availableProcessors()*3
         ))
 
+        System.err.println("Parsed data now writing...")
+
         val tripleSink_spark = new File(s"${config.output.getAbsolutePath}.tmp")
         val reportSink_spark = new File(s"${config.report.getAbsolutePath}.tmp")
 
@@ -63,6 +81,9 @@ object DeriveCli {
           Some(reportSink_spark)
         )
 
+        System.err.println("Cleaning Files...")
+
+        // Using spark process env. to concat files using cat.
         val findTriples = s"find ${tripleSink_spark.getAbsolutePath}/ -name part*" !!
         val concatTriples = s"cat $findTriples" #> config.output !
 
@@ -78,6 +99,7 @@ object DeriveCli {
         spark.close()
 
         FileUtils.deleteDirectory(new File(tmpSpark))
+
       case _ => optionParser.showUsage()
     }
 //    optionParser.parse()
