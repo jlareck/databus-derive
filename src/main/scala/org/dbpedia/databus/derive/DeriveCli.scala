@@ -39,9 +39,12 @@ object DeriveCli {
     optionParser.parse(args,Config()) match {
       case Some(config) =>
 
+        val tmpSpark = java.util.UUID.randomUUID.toString
+
         val spark = SparkSession.builder()
           .appName("FLAT Triple Parser")
           .master("local[*]")
+          .config("spark.local.dir",tmpSpark)
           .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
           .config("spark.kryoserializer.buffer.max","512m")
           .getOrCreate()
@@ -72,6 +75,9 @@ object DeriveCli {
         if( concatReports == 0 ) FileUtils.deleteDirectory(reportSink_spark)
         else System.err.println(s"[WARN] failed to merge ${reportSink_spark.getName}.tmp/*")
 
+        spark.close()
+
+        FileUtils.deleteDirectory(new File(tmpSpark))
       case _ => optionParser.showUsage()
     }
 //    optionParser.parse()
