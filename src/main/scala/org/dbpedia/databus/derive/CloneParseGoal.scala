@@ -65,30 +65,27 @@ class CloneParseGoal extends AbstractMojo {
 
   override def execute(): Unit = {
 
-    println(s"skipDownload $skipDownload")
-    println(s"skipParsing $skipParsing")
+    if ( artifactId == "group-metadata" ) {
 
-//    if ( artifactId == "group-metadata" ) {
-//
-//      versions.asScala.foreach(version => {
-//
-//        println(s"Looking for version: $version")
-//
-//        val (pomUrl,artifactId,versionId,files) = handleVersion(version)
-//
-//        val downloadDir = new File(buildDirectory,s"databus/$artifactId/$versionId")
-//
-//        downloadPreData(pomUrl,files,downloadDir)
-//
-//        val targetDir = new File(sessionRoot,s"$artifactId/$versionId")
-//
-//        parsePreData(downloadDir,targetDir)
-//
-//        copyModulePom(downloadDir,targetDir)
-//
-//        addModuleToGroupPom(new File(sessionRoot,"/pom.xml"),artifactId)
-//      })
-//    }
+      versions.asScala.foreach(version => {
+
+        println(s"Looking for version: $version")
+
+        val (pomUrl,artifactId,versionId,files) = handleVersion(version)
+
+        val downloadDir = new File(buildDirectory,s"databus/$artifactId/$versionId")
+
+        if(!skipDownload) downloadPreData(pomUrl,files,downloadDir)
+
+        val targetDir = new File(sessionRoot,s"$artifactId/$versionId")
+
+        if(!skipParsing) parsePreData(downloadDir,targetDir)
+
+        copyModulePom(downloadDir,targetDir)
+
+        addModuleToGroupPom(new File(sessionRoot,"/pom.xml"),artifactId)
+      })
+    }
   }
 
   // TODO change string based operations to jena queries

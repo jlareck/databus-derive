@@ -1,19 +1,19 @@
 package org.dbpedia.databus.derive
 
-import java.io.{BufferedInputStream, FileInputStream}
+import java.io._
+import java.util.zip.GZIPOutputStream
 
 import better.files.File
-import org.apache.commons.compress.compressors
-import org.apache.commons.compress.compressors.{CompressorException, CompressorStreamFactory, FileNameUtil}
-import org.apache.commons.io.FileUtils
-import org.apache.spark.sql.SparkSession
-import org.dbpedia.databus.derive.io.{CustomRdfIO, FastParse}
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream
+import org.apache.commons.compress.compressors.gzip.{GzipCompressorOutputStream, GzipParameters}
+import org.apache.commons.compress.compressors.{CompressorException, CompressorStreamFactory}
+import org.dbpedia.databus.derive.io.{FastParse, ReportFormat}
 import scopt._
 
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
-import scala.sys.process._
 import scala.language.postfixOps
+import scala.util.matching.Regex
 
 
 /**
@@ -22,32 +22,41 @@ import scala.language.postfixOps
   */
 
 case class FastParseConfig(input: File = null, output: Option[File] = None, report: Option[File] = None,
-                           parFiles: Int = 1, par: Int = 3, chunkS: Int = 200)
+                           parFiles: Int = 1, par: Int = 3, chunkS: Int = 200, compression: Boolean = true,
+                           reportformat: ReportFormat.Value = ReportFormat.TEXT)
 
 object FastParseCli {
 
-  implicit def betterFileRead = Read.reads(File(_))
+  implicit def betterFileRead: Read[File] = Read.reads(File(_))
 
   def main(args: Array[String]): Unit = {
 
-    val optionParser = new OptionParser[FastParseConfig]("fastparse"){
+    val optionParser: OptionParser[FastParseConfig] = new OptionParser[FastParseConfig]("fastparse"){
 
       head("Line based rdf parser", "0.2")
 
       arg[File]("<line-based-rdf-file>").required().maxOccurs(1).action((f, p) => p.copy(input = f))
+        .text("Line based rdf FILE (DIR parse all containing files)")
 
-      opt[File]('o', "output-file").maxOccurs(1).action((f, p) =>  p.copy(output = Some(f)))
+      opt[File]('o', "outputFile").maxOccurs(1).action((f, p) =>  p.copy(output = Some(f)))
+        .text("Clean triple FILE/DIR (EMPTY for StdOut)")
 
-      opt[File]('r', "report-file").maxOccurs(1).action((f, p) =>  p.copy(report = Some(f)))
+      opt[File]('r', "reportFile").maxOccurs(1).action((f, p) =>  p.copy(report = Some(f)))
+        .text("Validation report FILE/DIR (EMPTY for StdErr)")
 
+      opt[Unit]("rdfReports").maxOccurs(1).action((_,p) => p.copy(reportformat = ReportFormat.RDF))
+        .text("Prints a rdf structured validation report")
+
+      opt[Unit]('x', "no-compression").maxOccurs(1).action((_,p) => p.copy(compression = false))
+        .text("Disable GZIP compression for output files")
+
+      val parTemplate: Regex = """^(\d*)x(\d*)$""".r()
       opt[String]('p',"parallel").maxOccurs(1).action((t,p) => {
-
-        val parTemplate = """(\d*)x(\d*)""".r()
-        t match {
-          case parTemplate(x,y) =>
-            p.copy(par = x.toInt).copy(parFiles = y.toInt)
-        }
-      })
+        t match { case parTemplate(x,y) => p.copy(par = x.toInt).copy(parFiles = y.toInt) }
+      }).validate(t =>
+        if (parTemplate.findFirstIn(t).isDefined) success
+        else failure("Wrong --parallel {chunks}x{files}")
+      ).text("{A}x{B}. A = number of parallel files and B = number of parallel chunks in file. (def 3x1)")
 
       help("help").text("prints this usage text")
     }
@@ -61,89 +70,69 @@ object FastParseCli {
             |[INFO] ----------------------------------------"""
             .stripMargin)
 
-        val i = config.input
-
-        if ( i.isDirectory ) {
-
+        if ( config.input.isDirectory ) {
 
           val rFilter = """(.*\.nt.*)|(.*.ttl.*)""".r
-          val pool = i.toJava.listFiles().filter(f => rFilter.findFirstIn(f.getName).isDefined).par
+
+          val pool = config.input.list.filter(f => rFilter.findFirstIn(f.name).isDefined).toArray.par
+
           pool.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(config.parFiles))
 
-          pool.foreach( f => {
+          pool.foreach( file => {
 
-            System.err.println(s"[INFO] Validating ${f.getName}")
+            System.err.println(s"[INFO] Validating ${file.name}")
 
-            val fis = new FileInputStream(f)
-            val oos = {
-              if (config.output.isDefined)
-                File(config.output.get, s"${f.getName}.out").newOutputStream
-              else System.out
-            }
-            val ros = {
-              if (config.report.isDefined)
-                File(config.report.get,s"${f.getName}.out").newOutputStream
-              else System.err
-            }
+            val tOS = getOrElseOS(Some(File(config.output.get,s"${file.name}.out")),config.compression)(System.out)
+            val rOS = getOrElseOS(Some(File(config.report.get,s"${file.name}.err")),config.compression)(System.out)
 
-            try {
-
-              val cis = {
-                new CompressorStreamFactory()
-                  .createCompressorInputStream(
-                    new BufferedInputStream(
-                      new FileInputStream(f)))
-              }
-
-              FastParse.parse(cis,oos,ros,config.par,200)
-
-            } catch {
-
-              case ce: CompressorException =>
-                System.err.println(s"[WARN] No compression found for ${f.getName} - raw input")
-                FastParse.parse(fis,oos,ros,config.par,200)
-            }
+            parseFile(file, tOS, rOS, config.par, config.chunkS, config.reportformat)
           })
         } else {
 
-          val f = config.input.toJava
+          System.err.println(s"[INFO] Validating ${config.input.name}")
 
-          System.err.println(s"[INFO] Validating ${f.getName}")
+          val tOS = getOrElseOS(config.output, config.compression)(System.out)
+          val rOS = getOrElseOS(config.report, config.compression)(System.err)
 
-          val fis = new FileInputStream(f)
-          val oos = {
-            if (config.output.isDefined)
-              File(config.output.get, s"${f.getName}.out").newOutputStream
-            else System.out
-          }
-          val ros = {
-            if (config.report.isDefined)
-              File(config.report.get, s"${f.getName}.out").newOutputStream
-            else System.err
-          }
-
-          try {
-
-            val cis = {
-              new CompressorStreamFactory()
-                .createCompressorInputStream(
-                  new BufferedInputStream(
-                    new FileInputStream(f)))
-            }
-
-            FastParse.parse(cis, oos, ros, config.par, 200)
-
-          } catch {
-
-            case ce: CompressorException =>
-              System.err.println(s"[WARN] No compression found for ${f.getName} - raw input")
-              FastParse.parse(fis, oos, ros, config.par, 200)
-          }
+          parseFile(config.input, tOS, rOS, config.par, config.chunkS, config.reportformat)
         }
-
       case _ => optionParser.showUsage()
     }
   }
 
+  def getOrElseOS(file: Option[File], compression: Boolean)(fallback:PrintStream): OutputStream = {
+
+    if (file.isDefined && compression)
+//      new BZip2CompressorOutputStream(file.get.newOutputStream,1)
+      new GzipCompressorOutputStream(file.get.newOutputStream)
+    else if (file.isDefined)
+      file.get.newOutputStream
+    else fallback
+  }
+
+  def parseFile(file: File, tOS: OutputStream, rOS: OutputStream,
+                par: Int, chunkS: Int, reportFormat: ReportFormat.Value): Unit ={
+
+    val fIS = file.newInputStream
+
+    try {
+
+      val cis = {
+        new CompressorStreamFactory()
+          .createCompressorInputStream(
+            new BufferedInputStream(fIS))
+      }
+
+      FastParse.parse(cis, tOS, rOS, par, chunkS, reportFormat)
+
+    } catch {
+
+      case ce: CompressorException =>
+        System.err.println(s"[WARN] No compression found for ${file.name} - raw input")
+        FastParse.parse(fIS, tOS, rOS, par, chunkS, reportFormat)
+
+      case unknown: Throwable => println("[ERROR] Unknown exception: " + unknown)
+    }
+  }
 }
 
