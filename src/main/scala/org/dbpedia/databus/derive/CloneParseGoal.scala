@@ -57,29 +57,38 @@ class CloneParseGoal extends AbstractMojo {
   @Parameter
   val versions: util.ArrayList[String] = new util.ArrayList[String]
 
+  @Parameter
+  val skipDownload: Boolean = false
+
+  @Parameter
+  val skipParsing: Boolean = false
+
   override def execute(): Unit = {
 
-    if ( artifactId == "group-metadata" ) {
+    println(s"skipDownload $skipDownload")
+    println(s"skipParsing $skipParsing")
 
-      versions.asScala.foreach(version => {
-
-        println(s"Looking for version: $version")
-
-        val (pomUrl,artifactId,versionId,files) = handleVersion(version)
-
-        val downloadDir = new File(buildDirectory,s"databus/$artifactId/$versionId")
-
-        downloadPreData(pomUrl,files,downloadDir)
-
-        val targetDir = new File(sessionRoot,s"$artifactId/$versionId")
-
-        parsePreData(downloadDir,targetDir)
-
-        copyModulePom(downloadDir,targetDir)
-
-        addModuleToGroupPom(new File(sessionRoot,"/pom.xml"),artifactId)
-      })
-    }
+//    if ( artifactId == "group-metadata" ) {
+//
+//      versions.asScala.foreach(version => {
+//
+//        println(s"Looking for version: $version")
+//
+//        val (pomUrl,artifactId,versionId,files) = handleVersion(version)
+//
+//        val downloadDir = new File(buildDirectory,s"databus/$artifactId/$versionId")
+//
+//        downloadPreData(pomUrl,files,downloadDir)
+//
+//        val targetDir = new File(sessionRoot,s"$artifactId/$versionId")
+//
+//        parsePreData(downloadDir,targetDir)
+//
+//        copyModulePom(downloadDir,targetDir)
+//
+//        addModuleToGroupPom(new File(sessionRoot,"/pom.xml"),artifactId)
+//      })
+//    }
   }
 
   // TODO change string based operations to jena queries
@@ -144,7 +153,6 @@ class CloneParseGoal extends AbstractMojo {
     * @param targetDir directory/file to write parsed data
     */
   def parsePreData(sourceDir: File, targetDir: File): Unit = {
-
 
     val worker = "*"
 
