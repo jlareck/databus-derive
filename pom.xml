@@ -115,7 +115,7 @@
         <!-- https://mvnrepository.com/artifact/com.github.scopt/scopt -->
         <dependency>
             <groupId>com.github.scopt</groupId>
-            <artifactId>scopt_2.11</artifactId>
+            <artifactId>scopt_${scala.compat.version}</artifactId>
             <version>3.7.1</version>
         </dependency>
 
@@ -123,6 +123,12 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>1.7.16</version>
+        </dependency>
+
+        <dependency>
+            <groupId>co.fs2</groupId>
+            <artifactId>fs2-io_${scala.compat.version}</artifactId>
+            <version>1.0.0</version>
         </dependency>
 
     </dependencies>
@@ -187,6 +193,13 @@
                         <launcher>
                             <id>parse</id>
                             <mainClass>org.dbpedia.databus.derive.DeriveCli</mainClass>
+                            <jvmArgs>
+                                <jvmArg>${vmXmx}</jvmArg>
+                            </jvmArgs>
+                        </launcher>
+                        <launcher>
+                            <id>fastparse</id>
+                            <mainClass>org.dbpedia.databus.derive.FastParseCli</mainClass>
                             <jvmArgs>
                                 <jvmArg>${vmXmx}</jvmArg>
                             </jvmArgs>
