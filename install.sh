@@ -3,7 +3,7 @@
 set -e
 
 build="fastparse"
-if [ -f $build ]; then mv "$build" "$build.mvn"; fi
+if [ ! -f "$build.mvn" ]; then echo "backup fastparse -> fastparse.mvn"; mv "$build" "$build.mvn"; fi
 
 echo '#!/bin/bash' > $build
 
