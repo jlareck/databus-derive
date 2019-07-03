@@ -81,15 +81,15 @@ object FastParseCli {
 
             var tF: Option[File] = None
             if(config.output.isDefined) {
+              config.output.get.createDirectoryIfNotExists()
               tF = Some(File(config.output.get,s"${file.name}.out"))
-              tF.get.parent.createDirectory()
             }
             val tOS = getOrElseOS(tF,config.compression)(System.out)
 
             var rF: Option[File] = None
             if(config.report.isDefined) {
+              config.report.get.createDirectoryIfNotExists()
               rF = Some(File(config.report.get,s"${file.name}.err"))
-              rF.get.parent.createDirectory()
             }
             val rOS = getOrElseOS(rF,config.compression)(System.err)
 
