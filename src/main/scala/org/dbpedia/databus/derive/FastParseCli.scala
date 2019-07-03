@@ -1,11 +1,9 @@
 package org.dbpedia.databus.derive
 
 import java.io._
-import java.util.zip.GZIPOutputStream
 
 import better.files.File
-import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream
-import org.apache.commons.compress.compressors.gzip.{GzipCompressorOutputStream, GzipParameters}
+import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream
 import org.apache.commons.compress.compressors.{CompressorException, CompressorStreamFactory}
 import org.dbpedia.databus.derive.io.{FastParse, ReportFormat}
 import scopt._
@@ -80,10 +78,20 @@ object FastParseCli {
           pool.foreach( file => {
 
             System.err.println(s"[INFO] Validating ${file.name}")
-            System.err.println(Some(File(config.output.get,s"${file.name}.out")).get.pathAsString)
 
-            val tOS = getOrElseOS(Some(File(config.output.get,s"${file.name}.out")),config.compression)(System.out)
-            val rOS = getOrElseOS(Some(File(config.report.get,s"${file.name}.err")),config.compression)(System.err)
+            var tF: Option[File] = None
+            if(config.output.isDefined) {
+              tF = Some(File(config.output.get,s"${file.name}.out"))
+              tF.get.parent.createDirectory()
+            }
+            val tOS = getOrElseOS(tF,config.compression)(System.out)
+
+            var rF: Option[File] = None
+            if(config.report.isDefined) {
+              rF = Some(File(config.report.get,s"${file.name}.err"))
+              rF.get.parent.createDirectory()
+            }
+            val rOS = getOrElseOS(rF,config.compression)(System.err)
 
             parseFile(file, tOS, rOS, config.par, config.chunkS, config.reportformat)
           })

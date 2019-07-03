@@ -75,7 +75,7 @@ object FastParse {
     io.readInputStream[IO](IO(tripleInput),ByteInputBufferSize,executionContext)
       .through(text.utf8Decode)
       .through(text.lines)
-      .chunkN(100)
+      .chunkN(chunk)
       .parEvalMap(par)( x => IO {
 
         val reports = reportFromat match {
