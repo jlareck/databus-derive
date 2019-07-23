@@ -24,7 +24,11 @@
           <versions>
             <version>https://databus.dbpedia.org/dbpedia/enrichment/mappingbased-literals/2019.03.01</version>
           </versions>
-          <skipDownload>true</skipDownload>
+          <localeDirectory>./</localeDirectory>
+          <downloadDirectory>.download</downloadDirectory>
+          <deleteAferDownload>false</deleteAferDownload>
+          <skipParsing>false</skipParsing>
+          <!-- parallel => number of threads/file -->
         </configuration>
       </plugin>
     </plugins>

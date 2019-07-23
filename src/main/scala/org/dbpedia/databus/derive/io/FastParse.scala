@@ -25,14 +25,6 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.forkjoin.ForkJoinPool
 import scala.util.matching.Regex
 
-sealed trait CPR
-case class TripleBytes(bytes: Array[Byte]) extends CPR
-case class ReportBytes(bytes: Array[Byte]) extends CPR
-
-object ReportFormat extends Enumeration {
-  val TEXT,RDF = Value
-}
-
 object FastParse {
 
   protected val ByteInputBufferSize: Int = 32 * 1024
@@ -128,6 +120,15 @@ object FastParse {
       .compile.drain.unsafeRunSync()
   }
 }
+
+sealed trait CPR
+case class TripleBytes(bytes: Array[Byte]) extends CPR
+case class ReportBytes(bytes: Array[Byte]) extends CPR
+
+object ReportFormat extends Enumeration {
+  val TEXT,RDF = Value
+}
+
 
 trait BufferingErrorHandler[T] {
 

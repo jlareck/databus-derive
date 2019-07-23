@@ -1,23 +1,23 @@
 package org.dbpedia.databus.derive.download
 
-import java.io.{File, FileOutputStream}
+import java.io.FileOutputStream
 import java.net.URL
 
-import org.apache.commons.io.{FileUtils, IOUtils}
+import better.files.File
+import org.apache.commons.io.IOUtils
+import org.slf4j.Logger
 
 object FileDownloader {
 
-  def downloadUrlToFile(url: URL, file: File): Unit = {
+  def downloadUrlToFile(url: URL, file: File, createParentDirectory: Boolean = false): Unit = {
 
-//    FileUtils.copyURLToFile(url,file)
+    if( createParentDirectory ) file.parent.createDirectoryIfNotExists()
 
-    println(s"download: ${url.getPath}")
+    System.err.println(s"$url -> $file")
 
     val conn = url.openConnection()
-
     val cis = new LoggingInputStream(conn.getInputStream,conn.getContentLengthLong, 1L << 19)
-
-    val fos = new FileOutputStream(file)
+    val fos = new FileOutputStream(file.toJava)
 
     try {
       IOUtils.copy(cis,fos)
@@ -25,5 +25,13 @@ object FileDownloader {
       fos.close()
       cis.close()
     }
+  }
+
+  def downloadUrlToDirectory(url: URL, directory: File,
+                             createDirectory: Boolean = false, skipIfExists: Boolean = false): Unit = {
+
+
+    val file = directory / url.getFile.split("/").last
+    if( ! ( skipIfExists && file.exists ) ) downloadUrlToFile(url, file, createDirectory)
   }
 }
