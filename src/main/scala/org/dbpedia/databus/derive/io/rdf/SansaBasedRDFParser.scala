@@ -1,11 +1,13 @@
-package org.dbpedia.databus.derive.io
+package org.dbpedia.databus.derive.io.rdf
 
 import java.io.File
 
 import net.sansa_stack.rdf.benchmark.io.ReadableByteChannelFromIterator
 import net.sansa_stack.rdf.common.io.riot.lang.LangNTriplesSkipBad
 import net.sansa_stack.rdf.common.io.riot.tokens.TokenizerTextForgiving
+import net.sansa_stack.rdf.spark.io._
 import org.apache.commons.io.FileUtils
+import org.apache.hadoop.io.compress.BZip2Codec
 import org.apache.jena.atlas.io.PeekReader
 import org.apache.jena.graph.Triple
 import org.apache.jena.riot.RIOT
@@ -23,7 +25,9 @@ import scala.reflect.ClassTag
   *         Custom line based triple parser including generation of parse logs.
   *         Parse logs are of the type [INVALID_TRIPLE # REPORT].
   */
-object CustomRdfIO {
+object SansaBasedRDFParser {
+
+  def compression: Class[BZip2Codec] = classOf[org.apache.hadoop.io.compress.BZip2Codec]
 
   /**
     * Example code.
@@ -53,7 +57,7 @@ object CustomRdfIO {
 
     dataset.mapPartitions(iterTriple => {
 
-      val errorHandler = new QueuedErrorHandler
+      val errorHandler = new QueuedJenaErrorHandler
 
       val parserProfile = NonSerializableObjectWrapper {
         new ParserProfileStd(RiotLib.factoryRDF, errorHandler,
@@ -107,7 +111,7 @@ object CustomRdfIO {
   * @tparam T
   */
 class CombineQueuesIterator[T](triples: Iterator[Triple],
-reports: QueuedErrorHandler, lines: QueuedIterator[String]) extends Iterator[TripleReport]{
+                               reports: QueuedJenaErrorHandler, lines: QueuedIterator[String]) extends Iterator[TripleReport]{
 
   var row = RowObject(0,"")
   var changed = true
@@ -156,6 +160,11 @@ class QueuedIterator[T](it: Iterator[T]) extends Iterator[T] {
     rows += RowObject(currentPosition,next)
     next
   }
+}
+
+
+case class TripleReport(triple: Option[Triple], report: Option[String] ) {
+  override def toString: String = s"${triple.getOrElse("")}${report.getOrElse("")}}"
 }
 
 /**

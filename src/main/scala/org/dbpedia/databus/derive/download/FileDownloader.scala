@@ -5,7 +5,6 @@ import java.net.URL
 
 import better.files.File
 import org.apache.commons.io.IOUtils
-import org.slf4j.Logger
 
 object FileDownloader {
 

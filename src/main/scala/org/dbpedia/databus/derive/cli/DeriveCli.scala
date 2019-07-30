@@ -1,10 +1,10 @@
-package org.dbpedia.databus.derive
+package org.dbpedia.databus.derive.cli
 
 import java.io.File
 
 import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.SparkSession
-import org.dbpedia.databus.derive.io.CustomRdfIO
+import org.dbpedia.databus.derive.io.rdf.SansaBasedRDFParser
 import scopt._
 
 import scala.sys.process._
@@ -65,7 +65,7 @@ object DeriveCli {
           .config("spark.kryoserializer.buffer.max","512m")
           .getOrCreate()
 
-        val tripleReports = CustomRdfIO.parse(spark.sparkContext.textFile(
+        val tripleReports = SansaBasedRDFParser.parse(spark.sparkContext.textFile(
           path = config.input.getAbsolutePath,
           minPartitions = Runtime.getRuntime.availableProcessors()*3
         ))
@@ -75,7 +75,7 @@ object DeriveCli {
         val tripleSink_spark = new File(s"${config.output.getAbsolutePath}.tmp")
         val reportSink_spark = new File(s"${config.report.getAbsolutePath}.tmp")
 
-        CustomRdfIO.writeTripleReports(
+        SansaBasedRDFParser.writeTripleReports(
           tripleReports = tripleReports,
           Some(tripleSink_spark),
           Some(reportSink_spark)

@@ -4,8 +4,8 @@ import org.apache.jena.graph.NodeFactory
 import org.apache.jena.iri.IRIFactory
 import org.apache.jena.rdf.model.ResourceFactory
 import org.apache.jena.riot.system.IRIResolver
-import org.dbpedia.databus.derive.CloneParseGoal
 import org.dbpedia.databus.derive.download.DatabusDownloader
+import org.dbpedia.databus.derive.mojo.CloneGoal
 import org.dbpedia.databus.sparql.DataidQueries
 import org.scalatest.FunSuite
 
@@ -20,6 +20,6 @@ class DownloadTest extends FunSuite {
 
   test("Dev Test") {
 
-    println(new CloneParseGoal().downloadDirectory.getAbsolutePath)
+    println(new CloneGoal().downloadDirectory.getAbsolutePath)
   }
 }

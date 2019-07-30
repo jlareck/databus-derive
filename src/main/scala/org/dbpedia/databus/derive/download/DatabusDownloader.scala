@@ -23,7 +23,7 @@ object DatabusDownloader {
 
     val dataidUrl = querySolution.getResource("dataset").getURI
 
-    println(directory / artifact)
+    //println(s"$version -> ${directory/artifact}/$hasVersion")
 
     /**
       * Download original pom

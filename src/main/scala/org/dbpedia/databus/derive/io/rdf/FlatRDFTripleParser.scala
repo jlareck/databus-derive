@@ -1,4 +1,4 @@
-package org.dbpedia.databus.derive.io
+package org.dbpedia.databus.derive.io.rdf
 
 import java.io._
 import java.math.BigInteger
@@ -25,7 +25,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.forkjoin.ForkJoinPool
 import scala.util.matching.Regex
 
-object FastParse {
+object FlatRDFTripleParser {
 
   protected val ByteInputBufferSize: Int = 32 * 1024
 
@@ -48,7 +48,7 @@ object FastParse {
 
       val tripleOutput: OutputStream = new FileOutputStream(new File(s"$arg.out"))
       val reportOutput: OutputStream = new FileOutputStream(new File(s"$arg.err"))
-      FastParse.parse(cis,tripleOutput,reportOutput)
+      FlatRDFTripleParser.parse(cis,tripleOutput,reportOutput)
     })
   }
 
@@ -72,9 +72,9 @@ object FastParse {
 
         val reports = reportFromat match {
           case ReportFormat.TEXT =>
-            new BufferingTextReportsEH(x.toArray)
+            new BufferedTextReportsEH(x.toArray)
           case ReportFormat.RDF =>
-            new BufferingRDFReportsEH(x.toArray)
+            new BufferedRDFReportsEH(x.toArray)
         }
 
         val parserProfile = {
@@ -99,10 +99,10 @@ object FastParse {
 
             reports match {
 
-              case textReports: BufferingTextReportsEH =>
+              case textReports: BufferedTextReportsEH =>
                 Stream(ReportBytes(textReports.getReports.mkString("", "\n", "\n").getBytes(UTF_8)))
 
-              case rdfReports: BufferingRDFReportsEH =>
+              case rdfReports: BufferedRDFReportsEH =>
                 val reportOS = new ByteArrayOutputStream()
                 RDFDataMgr.writeTriples(reportOS,rdfReports.getReports.toIterator.asJava)
                 Stream(ReportBytes(reportOS.toByteArray))
@@ -129,8 +129,7 @@ object ReportFormat extends Enumeration {
   val TEXT,RDF = Value
 }
 
-
-trait BufferingErrorHandler[T] {
+trait BufferedErrorHandler[T] {
 
   protected val reports: ListBuffer[T] = ListBuffer[T]()
 
@@ -139,7 +138,7 @@ trait BufferingErrorHandler[T] {
   }
 }
 
-class BufferingTextReportsEH(rawLines: Array[String]) extends BufferingErrorHandler[String] with ErrorHandler{
+class BufferedTextReportsEH(rawLines: Array[String]) extends BufferedErrorHandler[String] with ErrorHandler{
 
   override def warning(message: String, line: Long, col: Long): Unit = {
     reports.append(s"${rawLines(line.toInt-1)} # WRN@$col $message")
@@ -154,7 +153,7 @@ class BufferingTextReportsEH(rawLines: Array[String]) extends BufferingErrorHand
   }
 }
 
-class BufferingRDFReportsEH(rawLines: Array[String]) extends BufferingErrorHandler[Triple] with ErrorHandler{
+class BufferedRDFReportsEH(rawLines: Array[String]) extends BufferedErrorHandler[Triple] with ErrorHandler{
 
   def base: String = "http://dbpedia.org/debug/"
   def rIri: Regex = """<.*>""".r

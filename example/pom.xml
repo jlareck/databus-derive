@@ -16,7 +16,7 @@
           <execution>
             <phase>initialize</phase>
             <goals>
-              <goal>clone-parse</goal>
+              <goal>clone</goal>
             </goals>
           </execution>
         </executions>
@@ -24,11 +24,10 @@
           <versions>
             <version>https://databus.dbpedia.org/dbpedia/enrichment/mappingbased-literals/2019.03.01</version>
           </versions>
-          <localeDirectory>./</localeDirectory>
+          <repositoryDirectory>./</repositoryDirectory>
+          <skipParsing>true</skipParsing>
           <downloadDirectory>.download</downloadDirectory>
-          <deleteAferDownload>false</deleteAferDownload>
-          <skipParsing>false</skipParsing>
-          <!-- parallel => number of threads/file -->
+          <deleteDownloadCache>true</deleteDownloadCache>
         </configuration>
       </plugin>
     </plugins>

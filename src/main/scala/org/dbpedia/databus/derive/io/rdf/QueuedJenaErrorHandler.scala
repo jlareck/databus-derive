@@ -1,4 +1,4 @@
-package org.dbpedia.databus.derive.io
+package org.dbpedia.databus.derive.io.rdf
 
 import org.apache.jena.riot.system.ErrorHandler
 
@@ -8,7 +8,7 @@ import scala.collection._
   * @author Marvin Hofer
   *         Apache Jena RDF ErrorHandler memorizing the last logged reports.
   */
-class QueuedErrorHandler() extends ErrorHandler {
+class QueuedJenaErrorHandler() extends ErrorHandler {
 
   private var reports = new mutable.Queue[RowObject[String]]
 

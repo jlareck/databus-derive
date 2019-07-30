@@ -1,18 +1,14 @@
-package org.dbpedia.databus.derive
+package org.dbpedia.databus.derive.mojo
 
-import java.io.{File, FileInputStream, FileWriter}
 import java.util
 
 import better.files
-import better.files.File
 import org.apache.commons.io.FileUtils
 import org.apache.jena.riot.system.IRIResolver
-import org.apache.maven.model.io.xpp3.{MavenXpp3Reader, MavenXpp3Writer}
 import org.apache.maven.plugin.AbstractMojo
 import org.apache.maven.plugins.annotations._
-import org.apache.spark.sql.SparkSession
 import org.dbpedia.databus.derive.download.DatabusDownloader
-import org.dbpedia.databus.derive.io.{CustomRdfIO, _}
+import org.dbpedia.databus.derive.io.xml.PomUtils
 
 import scala.collection.JavaConverters._
 
@@ -22,8 +18,8 @@ import scala.collection.JavaConverters._
   *
   * MAVEN Goal: retrieve and parse DBpedia databus dataset's by version
   */
-@Mojo(name = "clone-parse")//, defaultPhase = LifecyclePhase.TEST, threadSafe = true)
-class CloneParseGoal extends AbstractMojo {
+@Mojo(name = "clone")//, defaultPhase = LifecyclePhase.TEST, threadSafe = true)
+class CloneGoal extends AbstractMojo {
 
 //  @Parameter(defaultValue = "${project}", readonly = true, required = true)
 //  private val project = new MavenProject()
@@ -57,13 +53,13 @@ class CloneParseGoal extends AbstractMojo {
   val downloadDirectory: java.io.File = new java.io.File("./.download")
 
   @Parameter
-  val targetDirectory: java.io.File = new java.io.File("./")
-
-  @Parameter
-  val skipDownload: Boolean = false
-
-  @Parameter
   val skipParsing: Boolean = false
+
+  @Parameter
+  val repositoryDirectory: java.io.File = new java.io.File("./")
+
+  @Parameter
+  val deleteDownloadCache: Boolean = true
 
   override def execute(): Unit = {
 
@@ -76,24 +72,26 @@ class CloneParseGoal extends AbstractMojo {
 
         DatabusDownloader.cloneVersionToDirectory(
           version = versionIRI,
-          directory = files.File(buildDirectory.getAbsolutePath),
+          directory = files.File(downloadDirectory.getAbsolutePath),
           skipFilesIfExists = true
         )
 
-//        val (pomUrl,artifactId,versionId,files) = DatabusDownloader.handleVersion(version)
-//
-//        val downloadDir = new File(buildDirectory,s"databus/$artifactId/$versionId")
-//
-//        if(!skipDownload) downloadPreData(pomUrl,files,downloadDir)
-//
-//        val targetDir = new File(sessionRoot,s"$artifactId/$versionId")
-//
-//        if(!skipParsing) parsePreData(downloadDir,targetDir)
-//
-//        copyModulePom(downloadDir,targetDir)
-//
-//        addModuleToGroupPom(new File(sessionRoot,"/pom.xml"),artifactId)
+        if ( skipParsing ) {
+
+          FileUtils.copyDirectory(downloadDirectory, repositoryDirectory)
+        }
+        else {
+
+          println("ParserImpl is missing. skipParsing = true")
+          FileUtils.copyDirectory(downloadDirectory, repositoryDirectory)
+
+          //TODO FlatRDFTripleParser.parseDirectoryToDirectory()
+        }
+
+        PomUtils.copyAllAndChangeGroup(downloadDirectory, repositoryDirectory, groupId)
       })
+
+      if ( deleteDownloadCache ) FileUtils.deleteDirectory(downloadDirectory)
     }
   }
 
@@ -168,28 +166,6 @@ class CloneParseGoal extends AbstractMojo {
 //
 //
 //
-//  def copyModulePom(sourceDir: File, targetDir: File): Unit = {
-//
-//    val reader = new MavenXpp3Reader
-//    val artifactPom = reader.read(new FileInputStream(new File(sourceDir.getParent,"/pom.xml")))
-//
-//    artifactPom.getParent.setGroupId(groupId)
-//    artifactPom.setGroupId(groupId)
-//
-//    val writer = new MavenXpp3Writer
-//    writer.write(new FileWriter(new File(targetDir.getParent, "/pom.xml")), artifactPom)
-//  }
-//
-//  def addModuleToGroupPom(pom: File, module: String): Unit ={
-//
-//    val reader = new MavenXpp3Reader
-//    val groupPom = reader.read(new FileInputStream(pom))
-//
-//    groupPom.addModule(module)
-//
-//    val writer = new MavenXpp3Writer
-//    writer.write(new FileWriter(pom), groupPom)
-//  }
 //
 //  /**
 //    * toString of metadata information
