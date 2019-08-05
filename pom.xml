@@ -17,7 +17,7 @@
   </licenses>
   <properties>
     <encoding>UTF-8</encoding>
-    <vmXmx>-Xmx24g</vmXmx>
+    <vmXmx>-Xmx8g</vmXmx>
     <file.encoding>UTF-8</file.encoding>
     <license.organizationName>Sebastian Hellmann (on behalf of the DBpedia Association)</license.organizationName>
     <maven.compiler.target>1.8</maven.compiler.target>
