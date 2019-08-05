@@ -12,6 +12,7 @@ import org.apache.jena.riot.RDFDataMgr
 import org.apache.maven.model.io.xpp3.{MavenXpp3Reader, MavenXpp3Writer}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SaveMode
+import org.codehaus.plexus.util.DirectoryScanner
 
 import scala.language.postfixOps
 import scala.sys.process._
@@ -103,5 +104,17 @@ package object io {
 
     val writer = new MavenXpp3Writer
     writer.write(new FileWriter(pom), groupPom)
+  }
+
+  def findFilePathsInDirectory(baseDir: File, wildcards: Array[String],
+                               caseSensitive: Boolean = false): Array[String] = {
+
+    //TODO more scala like
+    val directoryScanner = new DirectoryScanner()
+    directoryScanner.setIncludes(wildcards)
+    directoryScanner.setBasedir(baseDir.getAbsolutePath)
+    directoryScanner.setCaseSensitive(caseSensitive)
+    directoryScanner.scan()
+    directoryScanner.getIncludedFiles
   }
 }

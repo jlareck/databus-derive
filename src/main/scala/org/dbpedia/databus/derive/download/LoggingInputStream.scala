@@ -76,7 +76,7 @@ class LoggingInputStream(in: InputStream, length: Long, step: Long) extends Inpu
     if (close || bytes >= next)
     {
       val millis = (System.nanoTime - nanos) / 1000000
-      System.err.print(s"Download: ${formatBytes(bytes)} of ${formatBytes(length)} in ${formatMillis(millis)} ${formatRate(bytes, millis)}")
+      System.err.print(s"[INFO] Download: ${formatBytes(bytes)} of ${formatBytes(length)} in ${formatMillis(millis)} ${formatRate(bytes, millis)}")
 
       if (close || ! pretty) System.err.println()
       else System.err.print("                    \r")

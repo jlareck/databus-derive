@@ -24,10 +24,11 @@
           <versions>
             <version>https://databus.dbpedia.org/dbpedia/enrichment/mappingbased-literals/2019.03.01</version>
           </versions>
-          <repositoryDirectory>./</repositoryDirectory>
-          <skipParsing>true</skipParsing>
+          <targetDirectory>./</targetDirectory>
+          <reportDirectory>.reports</reportDirectory>
           <downloadDirectory>.download</downloadDirectory>
-          <deleteDownloadCache>true</deleteDownloadCache>
+          <deleteDownloadCache>false</deleteDownloadCache>
+          <skipParsing>false</skipParsing>
         </configuration>
       </plugin>
     </plugins>

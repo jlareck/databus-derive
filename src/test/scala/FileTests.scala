@@ -121,6 +121,10 @@ class FileTests {
 
   @Test
   def bb(): Unit = {
+    val file = File("/home/marvin/workspace/active/databus-derive/data/mappingbased-objects-uncleaned_lang=ca.ttl.bz2")
 
+
+    println(file.changeExtensionTo(".no"))
+//    println(file.nameWithoutExtension)
   }
 }

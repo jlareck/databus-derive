@@ -6,13 +6,11 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets.UTF_8
 import java.security.MessageDigest
 
-import better.files.File
 import cats.effect.{ContextShift, IO}
 import fs2.{Pure, Stream, io, text}
 import net.sansa_stack.rdf.benchmark.io.ReadableByteChannelFromIterator
 import net.sansa_stack.rdf.common.io.riot.lang.LangNTriplesSkipBad
 import net.sansa_stack.rdf.common.io.riot.tokens.TokenizerTextForgiving
-import org.apache.commons.compress.compressors.CompressorStreamFactory
 import org.apache.jena.atlas.io.PeekReader
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.{Node, NodeFactory, Triple}
@@ -21,9 +19,7 @@ import org.apache.jena.riot.{RDFDataMgr, RIOT}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
-import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.ExecutionContext
-import scala.concurrent.forkjoin.ForkJoinPool
 import scala.util.matching.Regex
 
 object FlatRDFTripleParser {

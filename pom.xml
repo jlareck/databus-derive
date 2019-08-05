@@ -136,14 +136,7 @@
           <recompileMode>incremental</recompileMode>
           <launchers>
             <launcher>
-              <id>parse</id>
-              <mainClass>org.dbpedia.databus.derive.DeriveCli</mainClass>
-              <jvmArgs>
-                <jvmArg>${vmXmx}</jvmArg>
-              </jvmArgs>
-            </launcher>
-            <launcher>
-              <id>fastparse</id>
+              <id>flatRdfParser</id>
               <mainClass>org.dbpedia.databus.derive.cli.FlatRDFTripleParserCLI</mainClass>
               <jvmArgs>
                 <jvmArg>${vmXmx}</jvmArg>

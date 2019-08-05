@@ -7,8 +7,8 @@ import org.apache.spark.sql.SparkSession
 import org.dbpedia.databus.derive.io.rdf.SansaBasedRDFParser
 import scopt._
 
-import scala.sys.process._
 import scala.language.postfixOps
+import scala.sys.process._
 
 //import org.apache.log4j.Level
 //import org.apache.log4j.Logger

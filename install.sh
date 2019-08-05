@@ -2,8 +2,8 @@
 
 set -e
 
-build="fastparse"
-if [ ! -f "$build.mvn" ]; then echo "backup fastparse -> fastparse.mvn"; mv "$build" "$build.mvn"; fi
+build="flatRdfParser"
+if [ ! -f "$build.mvn" ]; then echo "backup $build -> $build.mvn"; mv "$build" "$build.mvn"; fi
 
 echo '#!/bin/bash' > $build
 
@@ -12,7 +12,7 @@ echo 'touch $tmpfile' >> $build
 echo 'for arg in $*; do echo $arg >> $tmpfile; done' >> $build
 
 mvn scala:run -B -Dlauncher=fastparse -DdisplayCmd=true -DaddArgs="--help" | grep 'cmd:' | cut -c14- | sed -e 's/\/tmp\/scala-maven-.*.args/\\/g' >> $build
-echo '  $tmpfile' >> $build
+echo '$tmpfile' >> $build
 
 echo 'rm $tmpfile' >> $build
 

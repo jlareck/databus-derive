@@ -2,26 +2,35 @@ package org.dbpedia.databus.derive.io.xml
 
 import java.io.{File, FileInputStream, FileWriter}
 
+import better.files.Resource
 import org.apache.maven.model.io.xpp3.{MavenXpp3Reader, MavenXpp3Writer}
-import org.codehaus.plexus.util.DirectoryScanner
+import org.dbpedia.databus.derive.io.findFilePathsInDirectory
 
 object PomUtils {
 
-  def copyAllAndChangeGroup(srcDir: File, destDir: File, groupId: String): Unit = {
+  def copyAllAndChangeGroup(srcDir: File, destDir: File, groupId: String, groupVersion: String): Unit = {
 
-    val parentPomFile = new File(destDir, "/pom.xml")
+    val parentPomFile = new File(destDir, "pom.xml")
 
     if (! parentPomFile.exists() ) {
-      // TODO Create Simple GroupID pom
+      createDefaultGroupPom(
+        parentPomFile,
+        groupId,
+//      { val versionFormat = new SimpleDateFormat("yyyy.MM.dd");
+//      versionFormat.format(Calendar.getInstance().getTime) }
+        groupVersion
+      )
     }
     findFilePathsInDirectory(srcDir, Array[String]("*/pom.xml")).foreach(
 
       relativePomPath => {
 
-        copyAndChangeGroup(
+        System.err.println(s"[INFO] Moving $relativePomPath")
+        copyAndChangeParent(
           srcPom = new File(srcDir,relativePomPath),
           destPom = new File(destDir,relativePomPath),
-          groupId = groupId
+          groupId = groupId,
+          groupVersion = groupVersion
         )
 
         addModuleToPom(parentPomFile, relativePomPath.split("/").dropRight(1).last )
@@ -29,11 +38,12 @@ object PomUtils {
     )
   }
 
-  def copyAndChangeGroup(srcPom: File, destPom: File, groupId: String): Unit = {
+  def copyAndChangeParent(srcPom: File, destPom: File, groupId: String, groupVersion: String): Unit = {
 
     val artifactPom = new MavenXpp3Reader().read(new FileInputStream(srcPom))
+    artifactPom.getParent.setVersion(groupVersion)
     artifactPom.getParent.setGroupId(groupId)
-    artifactPom.setGroupId(groupId)
+//    artifactPom.setGroupId(groupId) //TODO needed?
 
     new MavenXpp3Writer().write(new FileWriter(destPom), artifactPom)
   }
@@ -46,15 +56,14 @@ object PomUtils {
     new MavenXpp3Writer().write(new FileWriter(pom), groupPom)
   }
 
-  def findFilePathsInDirectory(baseDir: File, wildcards: Array[String],
-                               caseSensitive: Boolean = false): Array[String] = {
+  def createDefaultGroupPom(file: File, groupId: String, groupVersion: String): Unit = {
 
-    //TODO more scala like
-    val directoryScanner = new DirectoryScanner()
-    directoryScanner.setIncludes(wildcards)
-    directoryScanner.setBasedir(baseDir.getAbsolutePath)
-    directoryScanner.setCaseSensitive(caseSensitive)
-    directoryScanner.scan()
-    directoryScanner.getIncludedFiles
+    val pom = new MavenXpp3Reader().read(Resource.getAsStream("template.pom.xml"))
+
+    pom.setGroupId(groupId)
+    pom.setArtifactId("group-metadata")
+    pom.setVersion(groupVersion)
+
+    new MavenXpp3Writer().write(new FileWriter(file),pom)
   }
 }

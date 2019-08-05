@@ -21,7 +21,7 @@ import scala.util.matching.Regex
 object FlatRDFTripleParserCLI {
 
   case class FlatRDFTripleParserConfig(input: File = null, output: Option[File] = None, report: Option[File] = None,
-                                      parFiles: Int = 1, par: Int = 3, chunkS: Int = 200, compression: Boolean = true,
+                                      parFiles: Int = 1, parChunks: Int = 3, chunkSize: Int = 200, compression: Boolean = true,
                                       reportformat: ReportFormat.Value = ReportFormat.TEXT)
 
   implicit def betterFileRead: Read[File] = Read.reads(File(_))
@@ -51,11 +51,14 @@ object FlatRDFTripleParserCLI {
 
         val parTemplate: Regex = """^(\d*)x(\d*)$""".r()
         opt[String]('p',"parallel").maxOccurs(1).action((t,p) => {
-          t match { case parTemplate(x,y) => p.copy(par = x.toInt).copy(parFiles = y.toInt) }
+          t match { case parTemplate(x,y) => p.copy(parChunks = x.toInt).copy(parFiles = y.toInt) }
         }).validate(t =>
           if (parTemplate.findFirstIn(t).isDefined) success
           else failure("Wrong --parallel {chunks}x{files}")
-        ).text("{A}x{B}. A = number of parallel files and B = number of parallel chunks in file. (def 3x1)")
+        ).text("{A}x{B}. A = number of parallel files and B = number of parallel chunks per file. (def 1x3)")
+
+        opt[Int]("chunkSize").maxOccurs(1).action((cs,p) => p.copy(chunkSize = cs))
+            .text("Lines per chunk")
 
         help("help").text("prints this usage text")
       }
@@ -98,7 +101,7 @@ object FlatRDFTripleParserCLI {
             }
             val rOS = getOrElseOS(rF,config.compression)(System.err)
 
-            parseFile(file, tOS, rOS, config.par, config.chunkS, config.reportformat)
+            parseFile(file, tOS, rOS, config.parChunks, config.chunkSize, config.reportformat)
           })
         } else {
 
@@ -107,7 +110,7 @@ object FlatRDFTripleParserCLI {
           val tOS = getOrElseOS(config.output, config.compression)(System.out)
           val rOS = getOrElseOS(config.report, config.compression)(System.err)
 
-          parseFile(config.input, tOS, rOS, config.par, config.chunkS, config.reportformat)
+          parseFile(config.input, tOS, rOS, config.parChunks, config.chunkSize, config.reportformat)
         }
       case _ => optionParser.showUsage()
     }
@@ -123,6 +126,7 @@ object FlatRDFTripleParserCLI {
     else fallback
   }
 
+  //TODO move to FlatRDFTripleParser
   def parseFile(file: File, tOS: OutputStream, rOS: OutputStream,
                 par: Int, chunkS: Int, reportFormat: ReportFormat.Value): Unit ={
 
