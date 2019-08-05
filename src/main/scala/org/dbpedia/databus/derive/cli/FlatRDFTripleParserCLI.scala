@@ -15,7 +15,7 @@ import scala.util.matching.Regex
 
 /**
   * @author Marvin Hofer
-  *         Runs CustomRdfIo.parse/write from command line
+  *         Runs FlatRDFTripleParser.parse/write from command line
   */
 
 object FlatRDFTripleParserCLI {
@@ -87,14 +87,14 @@ object FlatRDFTripleParserCLI {
             var tF: Option[File] = None
             if(config.output.isDefined) {
               config.output.get.createDirectoryIfNotExists()
-              tF = Some(File(config.output.get,s"${file.name}.out"))
+              tF = Some(File(config.output.get,file.name))
             }
             val tOS = getOrElseOS(tF,config.compression)(System.out)
 
             var rF: Option[File] = None
             if(config.report.isDefined) {
               config.report.get.createDirectoryIfNotExists()
-              rF = Some(File(config.report.get,s"${file.name}.err"))
+              rF = Some(File(config.report.get,file.name))
             }
             val rOS = getOrElseOS(rF,config.compression)(System.err)
 

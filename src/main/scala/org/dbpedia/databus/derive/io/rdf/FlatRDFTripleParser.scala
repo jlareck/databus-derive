@@ -6,6 +6,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets.UTF_8
 import java.security.MessageDigest
 
+import better.files.File
 import cats.effect.{ContextShift, IO}
 import fs2.{Pure, Stream, io, text}
 import net.sansa_stack.rdf.benchmark.io.ReadableByteChannelFromIterator
@@ -31,30 +32,30 @@ object FlatRDFTripleParser {
 
   def main(args: Array[String]): Unit = {
 
-    val proc = Runtime.getRuntime.availableProcessors()
-    val par = args.par
-
-    par.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(Math.ceil(proc/3.0).toInt))
-
-    par.foreach(arg => {
-      println(arg)
-      val cis = {
-        new CompressorStreamFactory()
-          .createCompressorInputStream(
-            new BufferedInputStream(
-              new FileInputStream(
-                new File(args(0)))))
-      }
-
-      val tripleOutput: OutputStream = new FileOutputStream(new File(s"$arg.out"))
-      val reportOutput: OutputStream = new FileOutputStream(new File(s"$arg.err"))
-      FlatRDFTripleParser.parse(cis,tripleOutput,reportOutput)
-    })
+//    val proc = Runtime.getRuntime.availableProcessors()
+//    val par = args.par
+//
+//    par.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(Math.ceil(proc/3.0).toInt))
+//
+//    par.foreach(arg => {
+//      println(arg)
+//      val cis = {
+//        new CompressorStreamFactory()
+//          .createCompressorInputStream(
+//            new BufferedInputStream(
+//              new FileInputStream(
+//                new File(args(0)))))
+//      }
+//
+//      val tripleOutput: OutputStream = new FileOutputStream(new File(s"$arg.out"))
+//      val reportOutput: OutputStream = new FileOutputStream(new File(s"$arg.err"))
+//      FlatRDFTripleParser.parse(cis,tripleOutput,reportOutput)
+//    })
   }
 
   def parse(
              tripleInput: InputStream, tripleOutput: OutputStream, reportOutput: OutputStream,
-             par: Int = 3, chunk: Int = 200, reportFromat: ReportFormat.Value = ReportFormat.TEXT
+             par: Int = 3, chunk: Int = 200, reportFormat: ReportFormat.Value = ReportFormat.TEXT
            ): Unit = {
 
 
@@ -70,7 +71,7 @@ object FlatRDFTripleParser {
       .chunkN(chunk)
       .parEvalMap(par)( x => IO {
 
-        val reports = reportFromat match {
+        val reports = reportFormat match {
           case ReportFormat.TEXT =>
             new BufferedTextReportsEH(x.toArray)
           case ReportFormat.RDF =>
