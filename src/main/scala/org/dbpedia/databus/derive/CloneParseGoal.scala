@@ -57,6 +57,13 @@ class CloneParseGoal extends AbstractMojo {
   @Parameter
   val versions: util.ArrayList[String] = new util.ArrayList[String]
 
+  /**
+    * Optional parameter to unify all versions to a target version
+    * Just an idea for now, not implemented
+    */
+  @Parameter
+  val targetVersion:String = null
+
   @Parameter
   val skipDownload: Boolean = false
 
@@ -75,8 +82,10 @@ class CloneParseGoal extends AbstractMojo {
 
         val downloadDir = new File(buildDirectory,s"databus/$artifactId/$versionId")
 
-        if(!skipDownload) downloadPreData(pomUrl,files,downloadDir)
+        if(!skipDownload) downloadPreData(files,downloadDir)
 
+        // assumes execution in group dir
+        // takes the version of target file
         val targetDir = new File(sessionRoot,s"$artifactId/$versionId")
 
         if(!skipParsing) parsePreData(downloadDir,targetDir)
@@ -140,7 +149,7 @@ class CloneParseGoal extends AbstractMojo {
 
     val pomFile = new File(sinkDir.getParentFile,"pom.xml")
 
-    if( ! pomFile.exists()) FileDownloader.downloadUrlToFile(new URL(pomUrl), pomFile)
+    //if( ! pomFile.exists()) FileDownloader.downloadUrlToFile(new URL(pomUrl), pomFile)
   }
 
   /**
