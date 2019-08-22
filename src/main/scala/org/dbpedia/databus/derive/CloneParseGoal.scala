@@ -65,6 +65,10 @@ class CloneParseGoal extends AbstractMojo {
   val targetVersion: String = null
 
   @Parameter
+  val spark_local_dir: String =  s"$sessionRoot/.spark-local-dir/"
+
+
+  @Parameter
   val skipDownload: Boolean = false
 
   @Parameter
@@ -88,7 +92,8 @@ class CloneParseGoal extends AbstractMojo {
         val targetDir = new File(sessionRoot, s"$artifactId/$versionId")
         if (!skipParsing) parsePreData(downloadDir, targetDir)
 
-        copyModulePom(downloadDir, targetDir)
+        //removed
+        //copyModulePom(downloadDir, targetDir)
         addModuleToGroupPom(new File(sessionRoot, "/pom.xml"), artifactId)
       })
     }
@@ -162,7 +167,6 @@ class CloneParseGoal extends AbstractMojo {
 
     val worker = "*"
 
-    val spark_local_dir = s"$sourceDir/spark-local-dir/"
 
     val sparkSession = SparkSession.builder()
       .master(s"local[$worker]")
