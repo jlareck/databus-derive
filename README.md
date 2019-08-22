@@ -22,7 +22,7 @@ Add the following plugin entry to the `BaseBuild(<build>)` element in your maven
         <version>1.0-SNAPSHOT</version>
         <executions>
           <execution>
-            <phase>initialize</phase>
+            <!--phase>initialize</phase-->
             <goals>
               <goal>clone-parse</goal>
             </goals>
