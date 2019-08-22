@@ -129,11 +129,12 @@ class CloneParseGoal extends AbstractMojo {
   /**
     * download single files into target/databus/$artifact/$version
     *
-    * @param pomUrl url of associated pom file
+    * removed:
+    * @ param pomUrl url of associated pom file
     * @param files list of download urls of single files
     * @param sinkDir directory to download data for further work
     */
-  def downloadPreData(pomUrl: String, files: List[String], sinkDir: File): Unit = {
+  def downloadPreData(files: List[String], sinkDir: File): Unit = {
 
     sinkDir.mkdirs()
 
@@ -147,8 +148,8 @@ class CloneParseGoal extends AbstractMojo {
 
     })
 
-    val pomFile = new File(sinkDir.getParentFile,"pom.xml")
-
+    //removed download of pom
+    //val pomFile = new File(sinkDir.getParentFile,"pom.xml")
     //if( ! pomFile.exists()) FileDownloader.downloadUrlToFile(new URL(pomUrl), pomFile)
   }
 
