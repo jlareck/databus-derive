@@ -80,8 +80,6 @@ class CloneParseGoal extends AbstractMojo {
 
   override def execute(): Unit = {
 
-    
-
     if (artifactId == "group-metadata") {
 
       versions.asScala.foreach(version => {

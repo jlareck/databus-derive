@@ -38,6 +38,24 @@ Add the following plugin entry to the `BaseBuild(<build>)` element in your maven
   </build>
 ```
 
+Note that you can also use a variable for configuration
+```
+ <properties>
+	<!-- used for derive plugin, can be anything really -->
+        <databus.marvinversion>2019.08.01</databus.marvinversion>
+ </properties>
+
+ <configuration>
+          <versions>
+            <version>https://databus.dbpedia.org/marvin/mappings/geo-coordinates-mappingbased/${databus.marvinversion}</version>
+            <version>https://databus.dbpedia.org/marvin/mappings/instance-types/${databus.marvinversion}</version>
+            <version>https://databus.dbpedia.org/marvin/mappings/mappingbased-literals/${databus.marvinversion}</version>
+            <version>https://databus.dbpedia.org/marvin/mappings/mappingbased-objects-uncleaned/${databus.marvinversion}</version>
+            <version>https://databus.dbpedia.org/marvin/mappings/specific-mappingbased-properties/${databus.marvinversion}</version>
+          </versions>
+ </configuration>
+```
+
 ## Usage
 
 To derive and parse released datasets add entries under the `configuration/versions` section.
