@@ -19,6 +19,10 @@ import org.dbpedia.databus.sparql.DataidQueries
 import org.dbpedia.databus.derive.io._
 
 import scala.collection.JavaConverters._
+import scala.sys.process._
+import scala.language.postfixOps
+
+
 
 /** @author Marvin Hofer
   *
@@ -65,7 +69,7 @@ class CloneParseGoal extends AbstractMojo {
   val targetVersion: String = null
 
   @Parameter
-  val spark_local_dir: String =  s"$sessionRoot/.spark-local-dir/"
+  val spark_local_dir: String =  s".spark-local-dir/"
 
 
   @Parameter
@@ -75,6 +79,8 @@ class CloneParseGoal extends AbstractMojo {
   val skipParsing: Boolean = false
 
   override def execute(): Unit = {
+
+    
 
     if (artifactId == "group-metadata") {
 
@@ -91,6 +97,16 @@ class CloneParseGoal extends AbstractMojo {
         // takes the version of target file
         val targetDir = new File(sessionRoot, s"$artifactId/$versionId")
         if (!skipParsing) parsePreData(downloadDir, targetDir)
+
+        //concat triple reports
+        val targetReport = new File(targetDir,s"${artifactId}_debug.txt.bz2")
+        targetReport.delete()
+        targetDir.listFiles().filter(_.getName.endsWith(".invalid")).foreach(f=>{
+          val concatReports = s"cat ${f}" #>> targetReport !
+
+          f.delete()
+        })
+
 
         //removed
         //copyModulePom(downloadDir, targetDir)
