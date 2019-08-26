@@ -1,4 +1,4 @@
-package org.dbpedia.databus.derive.io
+package org.dbpedia.databus.derive.io.rdf
 
 import java.io._
 import java.math.BigInteger
@@ -11,7 +11,6 @@ import fs2.{Pure, Stream, io, text}
 import net.sansa_stack.rdf.benchmark.io.ReadableByteChannelFromIterator
 import net.sansa_stack.rdf.common.io.riot.lang.LangNTriplesSkipBad
 import net.sansa_stack.rdf.common.io.riot.tokens.TokenizerTextForgiving
-import org.apache.commons.compress.compressors.CompressorStreamFactory
 import org.apache.jena.atlas.io.PeekReader
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.{Node, NodeFactory, Triple}
@@ -20,49 +19,39 @@ import org.apache.jena.riot.{RDFDataMgr, RIOT}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
-import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.ExecutionContext
-import scala.concurrent.forkjoin.ForkJoinPool
 import scala.util.matching.Regex
 
-sealed trait CPR
-case class TripleBytes(bytes: Array[Byte]) extends CPR
-case class ReportBytes(bytes: Array[Byte]) extends CPR
-
-object ReportFormat extends Enumeration {
-  val TEXT,RDF = Value
-}
-
-object FastParse {
+object FlatRDFTripleParser {
 
   protected val ByteInputBufferSize: Int = 32 * 1024
 
   def main(args: Array[String]): Unit = {
 
-    val proc = Runtime.getRuntime.availableProcessors()
-    val par = args.par
-
-    par.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(Math.ceil(proc/3.0).toInt))
-
-    par.foreach(arg => {
-      println(arg)
-      val cis = {
-        new CompressorStreamFactory()
-          .createCompressorInputStream(
-            new BufferedInputStream(
-              new FileInputStream(
-                new File(args(0)))))
-      }
-
-      val tripleOutput: OutputStream = new FileOutputStream(new File(s"$arg.out"))
-      val reportOutput: OutputStream = new FileOutputStream(new File(s"$arg.err"))
-      FastParse.parse(cis,tripleOutput,reportOutput)
-    })
+//    val proc = Runtime.getRuntime.availableProcessors()
+//    val par = args.par
+//
+//    par.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(Math.ceil(proc/3.0).toInt))
+//
+//    par.foreach(arg => {
+//      println(arg)
+//      val cis = {
+//        new CompressorStreamFactory()
+//          .createCompressorInputStream(
+//            new BufferedInputStream(
+//              new FileInputStream(
+//                new File(args(0)))))
+//      }
+//
+//      val tripleOutput: OutputStream = new FileOutputStream(new File(s"$arg.out"))
+//      val reportOutput: OutputStream = new FileOutputStream(new File(s"$arg.err"))
+//      FlatRDFTripleParser.parse(cis,tripleOutput,reportOutput)
+//    })
   }
 
   def parse(
              tripleInput: InputStream, tripleOutput: OutputStream, reportOutput: OutputStream,
-             par: Int = 3, chunk: Int = 200, reportFromat: ReportFormat.Value = ReportFormat.TEXT
+             par: Int = 3, chunk: Int = 200, reportFormat: ReportFormat.Value = ReportFormat.TEXT
            ): Unit = {
 
 
@@ -78,11 +67,11 @@ object FastParse {
       .chunkN(chunk)
       .parEvalMap(par)( x => IO {
 
-        val reports = reportFromat match {
+        val reports = reportFormat match {
           case ReportFormat.TEXT =>
-            new BufferingTextReportsEH(x.toArray)
+            new BufferedTextReportsEH(x.toArray)
           case ReportFormat.RDF =>
-            new BufferingRDFReportsEH(x.toArray)
+            new BufferedRDFReportsEH(x.toArray)
         }
 
         val parserProfile = {
@@ -107,10 +96,10 @@ object FastParse {
 
             reports match {
 
-              case textReports: BufferingTextReportsEH =>
+              case textReports: BufferedTextReportsEH =>
                 Stream(ReportBytes(textReports.getReports.mkString("", "\n", "\n").getBytes(UTF_8)))
 
-              case rdfReports: BufferingRDFReportsEH =>
+              case rdfReports: BufferedRDFReportsEH =>
                 val reportOS = new ByteArrayOutputStream()
                 RDFDataMgr.writeTriples(reportOS,rdfReports.getReports.toIterator.asJava)
                 Stream(ReportBytes(reportOS.toByteArray))
@@ -129,7 +118,15 @@ object FastParse {
   }
 }
 
-trait BufferingErrorHandler[T] {
+sealed trait CPR
+case class TripleBytes(bytes: Array[Byte]) extends CPR
+case class ReportBytes(bytes: Array[Byte]) extends CPR
+
+object ReportFormat extends Enumeration {
+  val TEXT,RDF = Value
+}
+
+trait BufferedErrorHandler[T] {
 
   protected val reports: ListBuffer[T] = ListBuffer[T]()
 
@@ -138,7 +135,7 @@ trait BufferingErrorHandler[T] {
   }
 }
 
-class BufferingTextReportsEH(rawLines: Array[String]) extends BufferingErrorHandler[String] with ErrorHandler{
+class BufferedTextReportsEH(rawLines: Array[String]) extends BufferedErrorHandler[String] with ErrorHandler{
 
   override def warning(message: String, line: Long, col: Long): Unit = {
     reports.append(s"${rawLines(line.toInt-1)} # WRN@$col $message")
@@ -153,7 +150,7 @@ class BufferingTextReportsEH(rawLines: Array[String]) extends BufferingErrorHand
   }
 }
 
-class BufferingRDFReportsEH(rawLines: Array[String]) extends BufferingErrorHandler[Triple] with ErrorHandler{
+class BufferedRDFReportsEH(rawLines: Array[String]) extends BufferedErrorHandler[Triple] with ErrorHandler{
 
   def base: String = "http://dbpedia.org/debug/"
   def rIri: Regex = """<.*>""".r

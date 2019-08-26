@@ -1,6 +1,9 @@
 #!/bin/bash
-tmpfile="$(date +%s%N)"
-touch $tmpfile
-for arg in $*; do echo $arg >> $tmpfile; done
-$tmpfile
-rm $tmpfile
+
+args=""
+for arg in $*
+do
+	args="$args|$arg"
+done
+
+mvn -q scala:run -Dlauncher="flatRdfParser" -DaddArgs="${args#?}"

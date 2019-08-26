@@ -32,6 +32,11 @@ Add the following plugin entry to the `BaseBuild(<build>)` element in your maven
           <versions>
             <version>https://databus.dbpedia.org/dbpedia/enrichment/mappingbased-literals/2019.03.01</version>
           </versions>
+          <targetDirectory>./</targetDirectory>
+          <reportDirectory>.reports</reportDirectory>
+          <downloadDirectory>.download</downloadDirectory>
+          <deleteDownloadCache>false</deleteDownloadCache>
+          <skipParsing>false</skipParsing>
         </configuration>
       </plugin>
     </plugins>

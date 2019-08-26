@@ -1,6 +1,6 @@
 package org.dbpedia.databus.derive
 
-import java.io.{ByteArrayOutputStream, File}
+import java.io.{ByteArrayOutputStream, File, FileInputStream, FileWriter}
 import java.util.Collections
 
 import net.sansa_stack.rdf.spark.io.ntriples.JenaTripleToNTripleString
@@ -9,20 +9,21 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.BZip2Codec
 import org.apache.jena.graph.Triple
 import org.apache.jena.riot.RDFDataMgr
+import org.apache.maven.model.io.xpp3.{MavenXpp3Reader, MavenXpp3Writer}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SaveMode
+import org.codehaus.plexus.util.DirectoryScanner
 
-import scala.sys.process._
 import scala.language.postfixOps
+import scala.sys.process._
 
 package object io {
 
-  case class RowObject[T](pos: Long, line: T)
-
-  case class TripleReport(triple: Option[Triple], report: Option[String] ) {
-    override def toString: String = s"${triple.getOrElse("")}${report.getOrElse("")}}"
-  }
-
+  /**
+    *
+    * @param targetDir
+    * @param file
+    */
   def cleanFiles(targetDir: File, file: File): Unit = {
 
     val tripleSink_spark = new File(targetDir,s"${file.getName}.tmp")
@@ -43,6 +44,10 @@ package object io {
     // TODO cv api needed
   }
 
+  /**
+    *
+    * @return
+    */
   def compression: Class[BZip2Codec] = classOf[org.apache.hadoop.io.compress.BZip2Codec]
 
   implicit class RDFWriter[T](triples: RDD[Triple]) {
@@ -83,7 +88,33 @@ package object io {
           Collections.singleton(new String(os.toByteArray)).iterator().asScala
         })
         .saveAsTextFile(path, compression)
-
     }
+  }
+
+  def copyModulePom(sourceDir: File, targetDir: File, newGroupId: String): Unit = {
+
+  }
+
+  def addModuleToGroupPom(pom: File, module: String): Unit ={
+
+    val reader = new MavenXpp3Reader
+    val groupPom = reader.read(new FileInputStream(pom))
+
+    groupPom.addModule(module)
+
+    val writer = new MavenXpp3Writer
+    writer.write(new FileWriter(pom), groupPom)
+  }
+
+  def findFilePathsInDirectory(baseDir: File, wildcards: Array[String],
+                               caseSensitive: Boolean = false): Array[String] = {
+
+    //TODO more scala like
+    val directoryScanner = new DirectoryScanner()
+    directoryScanner.setIncludes(wildcards)
+    directoryScanner.setBasedir(baseDir.getAbsolutePath)
+    directoryScanner.setCaseSensitive(caseSensitive)
+    directoryScanner.scan()
+    directoryScanner.getIncludedFiles
   }
 }
