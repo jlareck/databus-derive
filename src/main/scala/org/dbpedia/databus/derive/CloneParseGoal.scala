@@ -19,20 +19,24 @@ import org.dbpedia.databus.sparql.DataidQueries
 import org.dbpedia.databus.derive.io._
 
 import scala.collection.JavaConverters._
+import scala.sys.process._
+import scala.language.postfixOps
+
+
 
 /** @author Marvin Hofer
   *
-  * mvn databus-derive:clone-parse
+  *         mvn databus-derive:clone-parse
   *
-  * MAVEN Goal: retrieve and parse DBpedia databus datasets by version
+  *         MAVEN Goal: retrieve and parse DBpedia databus datasets by version
   */
-@Mojo(name = "clone-parse")//, defaultPhase = LifecyclePhase.TEST, threadSafe = true)
+@Mojo(name = "clone-parse") //, defaultPhase = LifecyclePhase.TEST, threadSafe = true)
 class CloneParseGoal extends AbstractMojo {
 
-//  @Parameter(defaultValue = "${project}", readonly = true, required = true)
-//  private val project = new MavenProject()
+  //  @Parameter(defaultValue = "${project}", readonly = true, required = true)
+  //  private val project = new MavenProject()
 
-  private val endpoint : String = "https://databus.dbpedia.org/repo/sparql"
+  private val endpoint: String = "https://databus.dbpedia.org/repo/sparql"
 
   @Parameter(defaultValue = "${session.executionRootDirectory}", readonly = true)
   val sessionRoot: File = null
@@ -57,6 +61,17 @@ class CloneParseGoal extends AbstractMojo {
   @Parameter
   val versions: util.ArrayList[String] = new util.ArrayList[String]
 
+  /**
+    * Optional parameter to unify all versions to a target version
+    * Just an idea for now, not implemented
+    */
+  @Parameter
+  val targetVersion: String = null
+
+  @Parameter
+  val spark_local_dir: String =  s".spark-local-dir/"
+
+
   @Parameter
   val skipDownload: Boolean = false
 
@@ -65,25 +80,35 @@ class CloneParseGoal extends AbstractMojo {
 
   override def execute(): Unit = {
 
-    if ( artifactId == "group-metadata" ) {
+    if (artifactId == "group-metadata") {
 
       versions.asScala.foreach(version => {
 
         println(s"Looking for version: $version")
 
-        val (pomUrl,artifactId,versionId,files) = handleVersion(version)
+        val (pomUrl, artifactId, versionId, files) = handleVersion(version)
 
-        val downloadDir = new File(buildDirectory,s"databus/$artifactId/$versionId")
+        val downloadDir = new File(buildDirectory, s"databus/$artifactId/$versionId")
+        if (!skipDownload) downloadPreData(files, downloadDir)
 
-        if(!skipDownload) downloadPreData(pomUrl,files,downloadDir)
+        // assumes execution in group dir
+        // takes the version of target file
+        val targetDir = new File(sessionRoot, s"$artifactId/$versionId")
+        if (!skipParsing) parsePreData(downloadDir, targetDir)
 
-        val targetDir = new File(sessionRoot,s"$artifactId/$versionId")
+        //concat triple reports
+        val targetReport = new File(targetDir,s"${artifactId}_debug.txt.bz2")
+        targetReport.delete()
+        targetDir.listFiles().filter(_.getName.endsWith(".invalid")).foreach(f=>{
+          val concatReports = s"cat ${f}" #>> targetReport !
 
-        if(!skipParsing) parsePreData(downloadDir,targetDir)
+          f.delete()
+        })
 
-        copyModulePom(downloadDir,targetDir)
 
-        addModuleToGroupPom(new File(sessionRoot,"/pom.xml"),artifactId)
+        //removed
+        //copyModulePom(downloadDir, targetDir)
+        addModuleToGroupPom(new File(sessionRoot, "/pom.xml"), artifactId)
       })
     }
   }
@@ -91,16 +116,17 @@ class CloneParseGoal extends AbstractMojo {
   // TODO change string based operations to jena queries
   /**
     * Retrieve meta information of released dataset version
+    *
     * @param version databus version iri
     */
-  def handleVersion(version: String): (String,String,String,List[String]) = {
+  def handleVersion(version: String): (String, String, String, List[String]) = {
 
     val query: Query = QueryFactory.create(DataidQueries.queryGetDataidFromVersion(version))
-    val results = QueryExecutionFactory.sparqlService(endpoint,query)
+    val results = QueryExecutionFactory.sparqlService(endpoint, query)
 
     val dataidUrl = results.execSelect().next().getResource("dataset").getURI
 
-    val dataidModel: Model = RDFDataMgr.loadModel(dataidUrl,RDFLanguages.NTRIPLES)
+    val dataidModel: Model = RDFDataMgr.loadModel(dataidUrl, RDFLanguages.NTRIPLES)
 
     val dataidUrlParts = dataidUrl.split("/").dropRight(1)
     val versionId = dataidUrlParts.reverse.head
@@ -108,23 +134,25 @@ class CloneParseGoal extends AbstractMojo {
     val pomUrl = s"${dataidUrlParts.dropRight(1).mkString("/")}/pom.xml"
 
     val filesQuery = QueryFactory.create(DataidQueries.queryDatasetFileUrls())
-    val filesResults = QueryExecutionFactory.create(filesQuery,dataidModel)
+    val filesResults = QueryExecutionFactory.create(filesQuery, dataidModel)
     val files = filesResults.execSelect().asScala.map(_.getResource("file").getURI).toList
 
-    println(info(dataidUrl,pomUrl,artifactId,versionId,files.length))
+    println(info(dataidUrl, pomUrl, artifactId, versionId, files.length))
 
-    (pomUrl,artifactId,versionId,files)
+    (pomUrl, artifactId, versionId, files)
   }
 
 
   /**
     * download single files into target/databus/$artifact/$version
     *
-    * @param pomUrl url of associated pom file
-    * @param files list of download urls of single files
+    * removed:
+    * @ param pomUrl url of associated pom file
+    *
+    * @param files   list of download urls of single files
     * @param sinkDir directory to download data for further work
     */
-  def downloadPreData(pomUrl: String, files: List[String], sinkDir: File): Unit = {
+  def downloadPreData(files: List[String], sinkDir: File): Unit = {
 
     sinkDir.mkdirs()
 
@@ -132,15 +160,15 @@ class CloneParseGoal extends AbstractMojo {
 
       val url = new URL(file)
 
-      val tmpFile = new File(sinkDir,new File(url.getPath).getName)
+      val tmpFile = new File(sinkDir, new File(url.getPath).getName)
 
-      if(! tmpFile.exists() ) FileDownloader.downloadUrlToFile(url , tmpFile)
+      if (!tmpFile.exists()) FileDownloader.downloadUrlToFile(url, tmpFile)
 
     })
 
-    val pomFile = new File(sinkDir.getParentFile,"pom.xml")
-
-    if( ! pomFile.exists()) FileDownloader.downloadUrlToFile(new URL(pomUrl), pomFile)
+    //removed download of pom
+    //val pomFile = new File(sinkDir.getParentFile,"pom.xml")
+    //if( ! pomFile.exists()) FileDownloader.downloadUrlToFile(new URL(pomUrl), pomFile)
   }
 
   /**
@@ -153,27 +181,26 @@ class CloneParseGoal extends AbstractMojo {
 
     val worker = "*"
 
-    val spark_local_dir = s"$sourceDir/spark-local-dir/"
 
     val sparkSession = SparkSession.builder()
       .master(s"local[$worker]")
       .appName("Test")
-      .config("spark.local.dir",spark_local_dir)
+      .config("spark.local.dir", spark_local_dir)
       .getOrCreate()
 
-    sourceDir.listFiles().filter(_.isFile).foreach( file => {
+    sourceDir.listFiles().filter(_.isFile).foreach(file => {
 
       //TODO File handling and naming
       val tripleReports = CustomRdfIO.parse(
-        sparkSession.sparkContext.textFile(file.getAbsolutePath,Runtime.getRuntime.availableProcessors()*4))
+        sparkSession.sparkContext.textFile(file.getAbsolutePath, Runtime.getRuntime.availableProcessors() * 4))
 
       CustomRdfIO.writeTripleReports(
         tripleReports,
-        Some(new File(targetDir,s"${file.getName}.tmp")),
-        Some(new File(targetDir,s"${file.getName}.invalid.tmp"))
+        Some(new File(targetDir, s"${file.getName}.tmp")),
+        Some(new File(targetDir, s"${file.getName}.invalid.tmp"))
       )
 
-      cleanFiles(targetDir,file)
+      cleanFiles(targetDir, file)
 
       // Deprecated
       // SansaRdfIO.writeNTriples(parsed,new File(targetDir,file.getName))(sqlContext = sparkSession.sqlContext)
@@ -186,11 +213,10 @@ class CloneParseGoal extends AbstractMojo {
   }
 
 
-
   def copyModulePom(sourceDir: File, targetDir: File): Unit = {
 
     val reader = new MavenXpp3Reader
-    val artifactPom = reader.read(new FileInputStream(new File(sourceDir.getParent,"/pom.xml")))
+    val artifactPom = reader.read(new FileInputStream(new File(sourceDir.getParent, "/pom.xml")))
 
     artifactPom.getParent.setGroupId(groupId)
     artifactPom.setGroupId(groupId)
@@ -199,13 +225,14 @@ class CloneParseGoal extends AbstractMojo {
     writer.write(new FileWriter(new File(targetDir.getParent, "/pom.xml")), artifactPom)
   }
 
-  def addModuleToGroupPom(pom: File, module: String): Unit ={
+  def addModuleToGroupPom(pom: File, module: String): Unit = {
 
     val reader = new MavenXpp3Reader
     val groupPom = reader.read(new FileInputStream(pom))
 
-    groupPom.addModule(module)
-
+    if (!groupPom.getModules.contains(module)) {
+      groupPom.addModule(module)
+    }
     val writer = new MavenXpp3Writer
     writer.write(new FileWriter(pom), groupPom)
   }
@@ -214,13 +241,13 @@ class CloneParseGoal extends AbstractMojo {
     * toString of metadata information
     *
     * @param dataidUrl URL of corresponding dataid
-    * @param pom URL of corresponding deployment pom
-    * @param artifact dataset artifact
-    * @param version dataset version
-    * @param files list of URLs pointing to related dataset single files
+    * @param pom       URL of corresponding deployment pom
+    * @param artifact  dataset artifact
+    * @param version   dataset version
+    * @param files     list of URLs pointing to related dataset single files
     * @return
     */
-  def info(dataidUrl: String, pom: String, artifact: String, version: String, files: Int) : String =
+  def info(dataidUrl: String, pom: String, artifact: String, version: String, files: Int): String =
     s"""
        |Found dataset at: $dataidUrl
        |artifact: $artifact version: $version
@@ -229,30 +256,30 @@ class CloneParseGoal extends AbstractMojo {
        |""".stripMargin
 
 
-//  val pluginVersion = "1.3-SNAPSHOT"
-//
-//  var logoPrinted = false
-//
-//  //NOTE: NEEDS TO BE COMPATIBLE WITH TURTLE COMMENTS
-//  val logo =
-//    s"""|
-//        |
-//        |######
-//        |#     #   ##   #####   ##   #####  #    #  ####
-//        |#     #  #  #    #    #  #  #    # #    # #
-//        |#     # #    #   #   #    # #####  #    #  ####
-//        |#     # ######   #   ###### #    # #    #      #
-//        |#     # #    #   #   #    # #    # #    # #    #
-//        |######  #    #   #   #    # #####   ####   ####
-//        |
-//        |# Plugin version ${pluginVersion} - https://github.com/dbpedia/databus-maven-plugin
-//        |
-//        |""".stripMargin
-//
-//  def printLogoOnce(mavenlog: Log) = {
-//    if (!logoPrinted) {
-//      mavenlog.info(logo)
-//    }
-//    logoPrinted = true
-//  }
+  //  val pluginVersion = "1.3-SNAPSHOT"
+  //
+  //  var logoPrinted = false
+  //
+  //  //NOTE: NEEDS TO BE COMPATIBLE WITH TURTLE COMMENTS
+  //  val logo =
+  //    s"""|
+  //        |
+  //        |######
+  //        |#     #   ##   #####   ##   #####  #    #  ####
+  //        |#     #  #  #    #    #  #  #    # #    # #
+  //        |#     # #    #   #   #    # #####  #    #  ####
+  //        |#     # ######   #   ###### #    # #    #      #
+  //        |#     # #    #   #   #    # #    # #    # #    #
+  //        |######  #    #   #   #    # #####   ####   ####
+  //        |
+  //        |# Plugin version ${pluginVersion} - https://github.com/dbpedia/databus-maven-plugin
+  //        |
+  //        |""".stripMargin
+  //
+  //  def printLogoOnce(mavenlog: Log) = {
+  //    if (!logoPrinted) {
+  //      mavenlog.info(logo)
+  //    }
+  //    logoPrinted = true
+  //  }
 }

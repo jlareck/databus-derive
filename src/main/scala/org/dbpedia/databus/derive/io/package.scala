@@ -26,7 +26,7 @@ package object io {
   def cleanFiles(targetDir: File, file: File): Unit = {
 
     val tripleSink_spark = new File(targetDir,s"${file.getName}.tmp")
-    val rerpotSink_spark = new File(targetDir,s"${file.getName}.invalid.tmp")
+    val reportSink_spark = new File(targetDir,s"${file.getName}.invalid.tmp")
 
     val findTriples = s"find ${tripleSink_spark.getAbsolutePath}/ -name part*" !!
     val concatTriples = s"cat $findTriples" #> new File(targetDir,file.getName) !
@@ -34,10 +34,10 @@ package object io {
     if( concatTriples == 0 ) FileUtils.deleteDirectory(tripleSink_spark)
     else System.err.println(s"[WARN] failed to merge ${file.getName}")
 
-    val findReports = s"find ${rerpotSink_spark.getAbsolutePath}/ -name part*" !!
+    val findReports = s"find ${reportSink_spark.getAbsolutePath}/ -name part*" !!
     val concatReports = s"cat $findReports" #> new File(targetDir,s"${file.getName}.invalid") !
 
-    if( concatReports == 0 ) FileUtils.deleteDirectory(rerpotSink_spark)
+    if( concatReports == 0 ) FileUtils.deleteDirectory(reportSink_spark)
     else System.err.println(s"[WARN] failed to merge ${file.getName}.invalid")
 
     // TODO cv api needed
