@@ -1,0 +1,6 @@
+#!/bin/bash
+tmpfile="$(date +%s%N)"
+touch $tmpfile
+for arg in $*; do echo $arg >> $tmpfile; done
+$tmpfile
+rm $tmpfile
