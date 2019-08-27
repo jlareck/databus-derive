@@ -1,9 +1,11 @@
+package org.dbpedia.databus.derive.download
+
 
 import better.files.File
 import org.apache.jena.riot.system.IRIResolver
-import org.dbpedia.databus.derive.download.DatabusDownloader
 import org.dbpedia.databus.derive.io.findFilePathsInDirectory
 import org.dbpedia.databus.derive.mojo.CloneGoal
+import org.scalatest.FunSuite
 
 class DownloadTest extends FunSuite {
 
@@ -24,6 +26,4 @@ class DownloadTest extends FunSuite {
     findFilePathsInDirectory(File("example/.download").toJava,Array[String]("*/*/*")).foreach(println)
 
   }
-
-
 }

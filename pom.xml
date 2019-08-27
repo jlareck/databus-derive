@@ -24,7 +24,7 @@
     <!-- TODO -->
     <properties>
         <!--5GB bz2 fusion-labels needs 64GB of heap on 64 workers-->
-        <vmXmx>-Xmx24g</vmXmx>
+        <vmXmx>-Xmx8g</vmXmx>
 
         <!--encoding-->
         <encoding>UTF-8</encoding>
@@ -94,7 +94,7 @@
         <dependency>
             <groupId>net.sansa-stack</groupId>
             <artifactId>sansa-rdf-spark_${scala.compat.version}</artifactId>
-            <version>0.5.0</version>
+            <version>0.6.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -144,6 +144,15 @@
             <artifactId>fs2-io_${scala.compat.version}</artifactId>
             <version>1.0.0</version>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.scalatest/scalatest -->
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.compat.version}</artifactId>
+            <version>3.0.8</version>
+            <scope>test</scope>
+        </dependency>
+
 
     </dependencies>
 
@@ -210,8 +219,8 @@
     </reporting>
 
     <build>
-        <sourceDirectory>src/main/scala</sourceDirectory>
-        <testSourceDirectory>src/test/scala</testSourceDirectory>
+        <!--<sourceDirectory>src/main/scala</sourceDirectory>-->
+        <!--<testSourceDirectory>src/test/scala</testSourceDirectory>-->
 
         <plugins>
             <plugin>
@@ -239,16 +248,16 @@
                 <configuration>
                     <recompileMode>incremental</recompileMode>
                     <launchers>
+                        <!--<launcher>-->
+                            <!--<id>parse</id>-->
+                            <!--<mainClass>org.dbpedia.databus.derive.DeriveCli</mainClass>-->
+                            <!--<jvmArgs>-->
+                                <!--<jvmArg>${vmXmx}</jvmArg>-->
+                            <!--</jvmArgs>-->
+                        <!--</launcher>-->
                         <launcher>
-                            <id>parse</id>
-                            <mainClass>org.dbpedia.databus.derive.DeriveCli</mainClass>
-                            <jvmArgs>
-                                <jvmArg>${vmXmx}</jvmArg>
-                            </jvmArgs>
-                        </launcher>
-                        <launcher>
-                            <id>fastparse</id>
-                            <mainClass>org.dbpedia.databus.derive.FastParseCli</mainClass>
+                            <id>flatRdfParser</id>
+                            <mainClass>org.dbpedia.databus.derive.cli.NTripleParserCLI</mainClass>
                             <jvmArgs>
                                 <jvmArg>${vmXmx}</jvmArg>
                             </jvmArgs>

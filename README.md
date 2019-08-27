@@ -76,9 +76,10 @@ mvn databus-derive:clone-parse
 
 It is also possible to just create cleaned triples and pareslogs.
 ```
-mvn scala:run -Dlauncher=parse -DaddArgs="$flat-rdf-in|-o|$flat-rdf-out|-r|$report-out"
+mvn scala:run -Dlauncher=flatRdfParser -DaddArgs="$flat-rdf-in|-o|$flat-rdf-out|-r|$report-out"
 ```
 or
 ```
-./run-parsing.sh <flat-rdf-in> <flat-rdf-out> <report-out>
+./flatRdfParser <flat-rdf-in> <flat-rdf-out> <report-out>
 ```
+for help add `--help`

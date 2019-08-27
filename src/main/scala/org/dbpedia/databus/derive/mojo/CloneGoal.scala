@@ -1,6 +1,6 @@
 package org.dbpedia.databus.derive.mojo
 
-import java.util
+import java.{io, util}
 
 import better.files
 import better.files.File
@@ -8,11 +8,10 @@ import org.apache.commons.io.FileUtils
 import org.apache.jena.riot.system.IRIResolver
 import org.apache.maven.plugin.AbstractMojo
 import org.apache.maven.plugins.annotations._
-import org.dbpedia.databus.derive.cli.FlatRDFTripleParserCLI.parseFile
+import org.dbpedia.databus.derive.cli.NTripleParserCLI.parseFile
 import org.dbpedia.databus.derive.download.DatabusDownloader
 import org.dbpedia.databus.derive.io.findFilePathsInDirectory
 import org.dbpedia.databus.derive.io.rdf.ReportFormat
-import org.dbpedia.databus.derive.io.xml.PomUtils
 
 import scala.collection.JavaConverters._
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -27,13 +26,13 @@ import scala.concurrent.forkjoin.ForkJoinPool
 @Mojo(name = "clone", defaultPhase = LifecyclePhase.INSTALL, threadSafe = true)
 class CloneGoal extends AbstractMojo {
 
-//  @Parameter(defaultValue = "${project}", readonly = true, required = true)
-//  private val project = new MavenProject()
-
   private val endpoint : String = "https://databus.dbpedia.org/repo/sparql"
 
   @Parameter(defaultValue = "${session.executionRootDirectory}", readonly = true)
   val sessionRoot: java.io.File = null
+
+  @Parameter(defaultValue = "${project.basedir} ", readonly = true)
+  val baseDirectory: java.io.File = null
 
   @Parameter(defaultValue = "${project.groupId}", readonly = true)
   val groupId: String = null
@@ -55,22 +54,45 @@ class CloneGoal extends AbstractMojo {
   @Parameter
   val versions: util.ArrayList[String] = new util.ArrayList[String]
 
-  @Parameter
-  val downloadDirectory: java.io.File = new java.io.File("./.download")
+  @Parameter(
+    property = "databus.derive.downloadDirectory",
+    defaultValue = "${project.build.directory}/databus/derive/downloads"
+  )
+  val downloadDirectory: java.io.File = null
 
-  @Parameter
+  @Parameter(
+    property = "databus.derive.reportDirectory",
+    defaultValue = "${project.build.directory}/databus/derive/tmp"
+  )
+  val reportDirectory: java.io.File = null
+
+  @Parameter(
+    property = "databus.derive.packageDirectory",
+    defaultValue = "${project.basedir}"
+  )
+  val packageDirectory: java.io.File = null
+
+  @Parameter(
+    property = "databus.derive.skipParsing",
+    defaultValue = "false"
+  )
   val skipParsing: Boolean = false
 
-  @Parameter
-  val targetDirectory: java.io.File = new java.io.File("./")
+  @Parameter(
+    property = "databus.derive.deleteDownloadCache",
+    defaultValue = "false"
+  )
+  val deleteDownloadCache: Boolean = false
 
-  @Parameter
-  val reportDirectory: java.io.File = new java.io.File("./.reports")
-
-  @Parameter
-  val deleteDownloadCache: Boolean = true
+  @Parameter(
+    property = "databus.derive.deleteDownloadCache",
+    defaultValue = "${project.build.directory}/databus/derive/.spark_local_dir"
+  )
+  val sparkLocalDir: java.io.File = null
 
   override def execute(): Unit = {
+
+    val finalBuildDirectory = new io.File(buildDirectory,"databus/derive/final")
 
     if ( artifactId == "group-metadata" ) {
 
@@ -87,22 +109,34 @@ class CloneGoal extends AbstractMojo {
 
         if ( skipParsing ) {
 
-          FileUtils.copyDirectory(downloadDirectory, targetDirectory)
+          FileUtils.copyDirectory(downloadDirectory, finalBuildDirectory)
         }
         else {
 
           parseDirectoryToDirectory(
             sourceDirectory = File(downloadDirectory.getAbsolutePath),
-            targetDirectory = File(targetDirectory.getAbsolutePath),
-            reportDirectory = File(reportDirectory.getAbsolutePath)
+            reportDirectory = File(reportDirectory.getAbsolutePath),
+            targetDirectory = File(finalBuildDirectory.getAbsolutePath)
           )
         }
 
-        PomUtils.copyAllAndChangeGroup(downloadDirectory, targetDirectory, groupId, version)
-      })
+        compressWithBash(finalBuildDirectory)
 
-      if ( deleteDownloadCache ) FileUtils.deleteDirectory(downloadDirectory)
+//        PomUtils.copyAllAndChangeGroup(downloadDirectory, finalBuildDirectory, groupId, version)
+        FileUtils.copyDirectory(finalBuildDirectory,packageDirectory)
+      })
     }
+  }
+
+  def compressWithBash(directory: io.File): Int = {
+    //TODO postfix operation notation, enable feature
+    import sys.process.Process
+
+    val cmd = Seq("bash", "-c", s"lbzip2 $$(find ${directory.getAbsolutePath} -regextype posix-egrep -regex '.*\\.(ttl|nt)')")
+
+    System.err.println(s"[INFO] ${cmd.mkString(" ")}")
+
+    Process(cmd).!
   }
 
   def parseDirectoryToDirectory( sourceDirectory: File,

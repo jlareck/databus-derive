@@ -9,7 +9,6 @@ import java.security.MessageDigest
 import cats.effect.{ContextShift, IO}
 import fs2.{Pure, Stream, io, text}
 import net.sansa_stack.rdf.benchmark.io.ReadableByteChannelFromIterator
-import net.sansa_stack.rdf.common.io.riot.lang.LangNTriplesSkipBad
 import net.sansa_stack.rdf.common.io.riot.tokens.TokenizerTextForgiving
 import org.apache.jena.atlas.io.PeekReader
 import org.apache.jena.datatypes.xsd.XSDDatatype
@@ -17,14 +16,16 @@ import org.apache.jena.graph.{Node, NodeFactory, Triple}
 import org.apache.jena.riot.system._
 import org.apache.jena.riot.{RDFDataMgr, RIOT}
 
+import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
 import scala.util.matching.Regex
 
-object FlatRDFTripleParser {
+object NTripleParser {
 
-  protected val ByteInputBufferSize: Int = 32 * 1024
+  protected val ByteInputBufferSize: Int = 64 * 1024
 
   def main(args: Array[String]): Unit = {
 
@@ -51,7 +52,8 @@ object FlatRDFTripleParser {
 
   def parse(
              tripleInput: InputStream, tripleOutput: OutputStream, reportOutput: OutputStream,
-             par: Int = 3, chunk: Int = 200, reportFormat: ReportFormat.Value = ReportFormat.TEXT
+             par: Int = 4, chunk: Int = 200, reportFormat: ReportFormat.Value = ReportFormat.TEXT,
+             removeWarnings:Boolean = false
            ): Unit = {
 
 
@@ -80,12 +82,20 @@ object FlatRDFTripleParser {
             RIOT.getContext.copy, true, true)
         }
 
-        val strmTriple = ReadableByteChannelFromIterator.toInputStream(x.iterator.asJava)
+        val tokenizer = {
+          new TokenizerTextForgiving(
+            PeekReader.makeUTF8(
+              ReadableByteChannelFromIterator.toInputStream(x.iterator.asJava)
+            )
+          )
+        }
 
-        val tokenizer = new TokenizerTextForgiving(PeekReader.makeUTF8(strmTriple))
         tokenizer.setErrorHandler(reports)
 
-        val jenaTriples = new LangNTriplesSkipBad(tokenizer, parserProfile, null)
+        val jenaTriples = new LangNTriplesSkipBad(tokenizer, parserProfile, null).filter(
+
+          wrappedTriple => { ! removeWarnings || ! reports.getCorruptRows.contains(wrappedTriple.getRow) }
+        )
 
         val tripleOS = new ByteArrayOutputStream()
         RDFDataMgr.writeTriples(tripleOS,jenaTriples)
@@ -94,6 +104,7 @@ object FlatRDFTripleParser {
 
           if(reports.getReports.nonEmpty) {
 
+            Stream(ReportBytes(reports.getReports.mkString("", "\n", "\n").getBytes(UTF_8)))
             reports match {
 
               case textReports: BufferedTextReportsEH =>
@@ -108,7 +119,6 @@ object FlatRDFTripleParser {
         }
 
         Stream[Pure,CPR](TripleBytes(tripleOS.toByteArray))++ reportStream
-
       }).flatten.parEvalMap(1){
 
         case TripleBytes(bytes) => IO { tripleOutput.write(bytes); Stream.empty }
@@ -126,19 +136,35 @@ object ReportFormat extends Enumeration {
   val TEXT,RDF = Value
 }
 
+case class RowNr(nr: Long)
+
 trait BufferedErrorHandler[T] {
+
+  protected val corruptRows: mutable.HashSet[Long] = mutable.HashSet[Long]()
+
+  def getCorruptRows: mutable.HashSet[Long] = {
+    corruptRows
+  }
+
+//  protected val corruptRows: ListBuffer[Long] = ListBuffer[Long]()
+//
+//  def getCorruptRows: List[Long] = {
+//    corruptRows.toList
+//  }
 
   protected val reports: ListBuffer[T] = ListBuffer[T]()
 
-  def getReports: ListBuffer[T] = {
-    reports
+  def getReports: List[T] = {
+
+    reports.toList
   }
 }
 
 class BufferedTextReportsEH(rawLines: Array[String]) extends BufferedErrorHandler[String] with ErrorHandler{
 
   override def warning(message: String, line: Long, col: Long): Unit = {
-    reports.append(s"${rawLines(line.toInt-1)} # WRN@$col $message")
+    corruptRows.add(line)
+    reports.append(s"${rawLines(line.toInt-1)} # WRN@$line,$col $message")
   }
 
   override def error(message: String, line: Long, col: Long): Unit = {
@@ -148,6 +174,8 @@ class BufferedTextReportsEH(rawLines: Array[String]) extends BufferedErrorHandle
   override def fatal(message: String, line: Long, col: Long): Unit = {
     reports.append(s"${rawLines(line.toInt-1)} # FTL@$col $message")
   }
+
+
 }
 
 class BufferedRDFReportsEH(rawLines: Array[String]) extends BufferedErrorHandler[Triple] with ErrorHandler{
@@ -157,6 +185,7 @@ class BufferedRDFReportsEH(rawLines: Array[String]) extends BufferedErrorHandler
   def rLit: Regex = """\".*\"""".r
 
   override def warning(message: String, line: Long, col: Long): Unit = {
+    corruptRows.add(line)
     construct("e",message,line,col)
   }
 

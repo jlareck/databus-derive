@@ -5,7 +5,7 @@ import java.io._
 import better.files.File
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream
 import org.apache.commons.compress.compressors.{CompressorException, CompressorStreamFactory}
-import org.dbpedia.databus.derive.io.rdf.{FlatRDFTripleParser, ReportFormat}
+import org.dbpedia.databus.derive.io.rdf.{NTripleParser, ReportFormat}
 import scopt._
 
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -18,7 +18,7 @@ import scala.util.matching.Regex
   *         Runs FlatRDFTripleParser.parse/write from command line
   */
 
-object FlatRDFTripleParserCLI {
+object NTripleParserCLI {
 
   case class FlatRDFTripleParserConfig(input: File = null, output: Option[File] = None, report: Option[File] = None,
                                       parFiles: Int = 1, parChunks: Int = 3, chunkSize: Int = 200, compression: Boolean = true,
@@ -140,13 +140,13 @@ object FlatRDFTripleParserCLI {
             new BufferedInputStream(fIS))
       }
 
-      FlatRDFTripleParser.parse(cis, tOS, rOS, par, chunkS, reportFormat)
+      NTripleParser.parse(cis, tOS, rOS, par, chunkS, reportFormat)
 
     } catch {
 
       case ce: CompressorException =>
         System.err.println(s"[WARN] No compression found for ${file.name} - raw input")
-        FlatRDFTripleParser.parse(fIS, tOS, rOS, par, chunkS, reportFormat)
+        NTripleParser.parse(fIS, tOS, rOS, par, chunkS, reportFormat)
 
       case unknown: Throwable => println("[ERROR] Unknown exception: " + unknown)
     }

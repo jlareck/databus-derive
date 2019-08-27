@@ -3,7 +3,6 @@ package org.dbpedia.databus.derive.io.rdf
 import java.io.File
 
 import net.sansa_stack.rdf.benchmark.io.ReadableByteChannelFromIterator
-import net.sansa_stack.rdf.common.io.riot.lang.LangNTriplesSkipBad
 import net.sansa_stack.rdf.common.io.riot.tokens.TokenizerTextForgiving
 import net.sansa_stack.rdf.spark.io._
 import org.apache.commons.io.FileUtils

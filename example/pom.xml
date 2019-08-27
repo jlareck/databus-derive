@@ -6,6 +6,7 @@
   <artifactId>group-metadata</artifactId>
   <version>2019.05.01</version>
   <packaging>pom</packaging>
+
   <build>
     <plugins>
       <plugin>
@@ -24,11 +25,11 @@
           <versions>
             <version>https://databus.dbpedia.org/dbpedia/enrichment/mappingbased-literals/2019.03.01</version>
           </versions>
-          <targetDirectory>./</targetDirectory>
-          <reportDirectory>.reports</reportDirectory>
-          <downloadDirectory>.download</downloadDirectory>
-          <deleteDownloadCache>false</deleteDownloadCache>
-          <skipParsing>false</skipParsing>
+          <!--<packageDirectory>${project.basedir}</packageDirectory>-->
+          <!--<reportDirectory>.reports</reportDirectory>-->
+          <!--<downloadDirectory>target/downloads</downloadDirectory>-->
+          <!--<deleteDownloadCache>false</deleteDownloadCache>-->
+          <!--<skipParsing>false</skipParsing>-->
         </configuration>
       </plugin>
     </plugins>
