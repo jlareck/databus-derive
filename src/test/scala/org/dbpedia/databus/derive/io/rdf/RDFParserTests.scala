@@ -3,6 +3,7 @@ package org.dbpedia.databus.derive.io.rdf
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
 import better.files.File
+import org.apache.hadoop.io.IOUtils.NullOutputStream
 import org.apache.jena.rdf.model.ModelFactory
 import org.apache.jena.riot.{RDFDataMgr, RDFLanguages}
 import org.scalatest.FunSuite
@@ -11,9 +12,12 @@ import scala.io.Source
 
 class RDFParserTests extends FunSuite {
 
+  val testFile = File("/todo")
+
   test("NTripleParser_remove_WARNINGS") {
 
-    val testFile = File("/todo")
+    println("NTripleParser | test if warnings are remove during parsing process")
+
     val firstTripleOS = new ByteArrayOutputStream()
     val firstReportOS = new ByteArrayOutputStream()
 
@@ -57,5 +61,14 @@ class RDFParserTests extends FunSuite {
       Source.fromBytes(parsedNTriplesBA,"UTF-8").getLines().length == model.listStatements().length,
       "Result contains still bad triples"
     )
+  }
+
+  test("NTripleParser_time") {
+
+    (0 until 6).foreach(i => {
+      val time = System.currentTimeMillis()
+      NTripleParser.parse(testFile.newFileInputStream,new NullOutputStream,new NullOutputStream)
+      println(System.currentTimeMillis()-time)
+    })
   }
 }

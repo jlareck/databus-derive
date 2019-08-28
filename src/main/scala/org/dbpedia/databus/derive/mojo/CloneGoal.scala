@@ -16,6 +16,7 @@ import org.dbpedia.databus.derive.io.rdf.ReportFormat
 import scala.collection.JavaConverters._
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
+import scala.sys.process.Process
 
 /** @author Marvin Hofer
   *
@@ -62,7 +63,7 @@ class CloneGoal extends AbstractMojo {
 
   @Parameter(
     property = "databus.derive.reportDirectory",
-    defaultValue = "${project.build.directory}/databus/derive/tmp"
+    defaultValue = "${project.build.directory}/databus/derive/reports"
   )
   val reportDirectory: java.io.File = null
 
@@ -90,11 +91,35 @@ class CloneGoal extends AbstractMojo {
   )
   val sparkLocalDir: java.io.File = null
 
+  @Parameter(
+    property = "databus.derive.removeFoundWarnings",
+    defaultValue = "true"
+  )
+  val removeWarnings: Boolean = true
+
+  @Parameter(
+    property = "databus.derive.parFiles",
+    defaultValue = "4"
+  )
+  val parFiles: Int = 4
+
+  @Parameter(
+    property = "databus.derive.parChunks",
+    defaultValue = "8"
+  )
+  val parChunks: Int = 8
+
+  @Parameter(
+    property = "databus.derive.chunkSize",
+    defaultValue = "10000"
+  )
+  val chunkSize: Int = 10000
+
   override def execute(): Unit = {
 
     val finalBuildDirectory = new io.File(buildDirectory,"databus/derive/final")
 
-    if ( artifactId == "group-metadata" ) {
+    if ( false || artifactId == "group-metadata" ) {
 
       versions.asScala.foreach( versionStr => {
 
@@ -107,30 +132,64 @@ class CloneGoal extends AbstractMojo {
           skipFilesIfExists = true
         )
 
-        if ( skipParsing ) {
-
-          FileUtils.copyDirectory(downloadDirectory, finalBuildDirectory)
-        }
-        else {
-
-          parseDirectoryToDirectory(
-            sourceDirectory = File(downloadDirectory.getAbsolutePath),
-            reportDirectory = File(reportDirectory.getAbsolutePath),
-            targetDirectory = File(finalBuildDirectory.getAbsolutePath)
-          )
-        }
-
-        compressWithBash(finalBuildDirectory)
-
 //        PomUtils.copyAllAndChangeGroup(downloadDirectory, finalBuildDirectory, groupId, version)
-        FileUtils.copyDirectory(finalBuildDirectory,packageDirectory)
       })
+
+      if ( skipParsing ) {
+
+        FileUtils.copyDirectory(downloadDirectory, finalBuildDirectory)
+      }
+      else {
+
+        parseDirectoryToDirectory(
+          sourceDirectory = File(downloadDirectory.getAbsolutePath),
+          reportDirectory = File(reportDirectory.getAbsolutePath),
+          targetDirectory = File(finalBuildDirectory.getAbsolutePath)
+        )
+      }
+
+      collectReports(reportDirectory,finalBuildDirectory)
+
+      compressOutputWithBash(finalBuildDirectory)
+
+      FileUtils.copyDirectory(finalBuildDirectory,packageDirectory)
     }
   }
 
-  def compressWithBash(directory: io.File): Int = {
+  def collectReports(sourceDirectory: io.File, targetDirectory: io.File): Unit = {
+
+    sourceDirectory.listFiles().foreach(
+
+      artifact => {
+
+        artifact.listFiles().foreach(
+
+          version => {
+
+            val newArtifact = new io.File(targetDirectory,s"${artifact.getName}/${version.getName}")
+            newArtifact
+
+            val cmd = {
+              Seq(
+                "bash",
+                "-c",
+                s"cat $$(find ${version.getAbsolutePath} -name '*_debug.txt') | " +
+                  s"lbzip2 > ${newArtifact.getAbsolutePath}/${artifact.getName}_debug.txt.bz2 ")
+            }
+
+            System.err.println(s"[INFO] ${cmd.mkString(" ")}")
+
+            Process(cmd).!
+          }
+        )
+      }
+    )
+
+  }
+
+  def compressOutputWithBash(directory: io.File): Int = {
+
     //TODO postfix operation notation, enable feature
-    import sys.process.Process
 
     val cmd = Seq("bash", "-c", s"lbzip2 $$(find ${directory.getAbsolutePath} -regextype posix-egrep -regex '.*\\.(ttl|nt)')")
 
@@ -149,10 +208,13 @@ class CloneGoal extends AbstractMojo {
     }
     else {
 
-      //TODO from pom conf or defaults
-      val parFiles = 2
-      val parChunks = 4
-      val chunkSize = 200
+      //TODO from pom conf
+      val parFiles = 4
+      val parChunks = 8
+      val chunkSize = 10000
+      /*
+      reportFormat, removeWarnings
+       */
 
       val rFilter = """(.*\.nt.*)|(.*\.ttl.*)""".r
 
@@ -172,7 +234,7 @@ class CloneGoal extends AbstractMojo {
         targetFile.parent.createDirectoryIfNotExists()
 
         val reportFile = reportDirectory / targetArtifact / targetVersion /
-          s"${sourceFile.nameWithoutExtension}_debug=rdf.ttl"
+          s"${sourceFile.nameWithoutExtension}_debug.txt"
 
         reportFile.parent.createDirectoryIfNotExists()
 
@@ -185,7 +247,8 @@ class CloneGoal extends AbstractMojo {
             reportFile.newOutputStream,
             parChunks,
             chunkSize,
-            ReportFormat.RDF
+            ReportFormat.TEXT,
+            removeWarnings = true
           )
         }
         else {

@@ -25,7 +25,7 @@ import scala.util.matching.Regex
 
 object NTripleParser {
 
-  protected val ByteInputBufferSize: Int = 64 * 1024
+  protected val ByteInputBufferSize: Int = 32 * 1024 //64 * 1024
 
   def main(args: Array[String]): Unit = {
 
@@ -52,10 +52,9 @@ object NTripleParser {
 
   def parse(
              tripleInput: InputStream, tripleOutput: OutputStream, reportOutput: OutputStream,
-             par: Int = 4, chunk: Int = 200, reportFormat: ReportFormat.Value = ReportFormat.TEXT,
-             removeWarnings:Boolean = false
+             par: Int = 8, chunk: Int = 10000, reportFormat: ReportFormat.Value = ReportFormat.TEXT,
+             removeWarnings: Boolean = false
            ): Unit = {
-
 
     implicit val executionContext: ExecutionContext =
       scala.concurrent.ExecutionContext.Implicits.global
@@ -69,15 +68,15 @@ object NTripleParser {
       .chunkN(chunk)
       .parEvalMap(par)( x => IO {
 
-        val reports = reportFormat match {
+        val errorHandler = reportFormat match {
           case ReportFormat.TEXT =>
-            new BufferedTextReportsEH(x.toArray)
+            new BufferedTextReportsEH(x.toArray,ListBuffer[String](),mutable.HashSet[Long]())
           case ReportFormat.RDF =>
-            new BufferedRDFReportsEH(x.toArray)
+            new BufferedRDFReportsEH(x.toArray,ListBuffer[Triple](),mutable.HashSet[Long]())
         }
 
         val parserProfile = {
-          new ParserProfileStd(RiotLib.factoryRDF, reports,
+          new ParserProfileStd(RiotLib.factoryRDF, errorHandler,
             IRIResolver.create, PrefixMapFactory.createForInput,
             RIOT.getContext.copy, true, true)
         }
@@ -90,11 +89,11 @@ object NTripleParser {
           )
         }
 
-        tokenizer.setErrorHandler(reports)
+        tokenizer.setErrorHandler(errorHandler)
 
         val jenaTriples = new LangNTriplesSkipBad(tokenizer, parserProfile, null).filter(
 
-          wrappedTriple => { ! removeWarnings || ! reports.getCorruptRows.contains(wrappedTriple.getRow) }
+          wrappedTriple => { ! removeWarnings || ! errorHandler.getViolatedRowsBuffer.contains(wrappedTriple.getRow) }
         )
 
         val tripleOS = new ByteArrayOutputStream()
@@ -102,17 +101,17 @@ object NTripleParser {
 
         val reportStream = {
 
-          if(reports.getReports.nonEmpty) {
+          if(errorHandler.getReportBuffer.nonEmpty) {
 
-            Stream(ReportBytes(reports.getReports.mkString("", "\n", "\n").getBytes(UTF_8)))
-            reports match {
+            Stream(ReportBytes(errorHandler.getReportBuffer.mkString("", "\n", "\n").getBytes(UTF_8)))
+            errorHandler match {
 
               case textReports: BufferedTextReportsEH =>
-                Stream(ReportBytes(textReports.getReports.mkString("", "\n", "\n").getBytes(UTF_8)))
+                Stream(ReportBytes(textReports.getReportBuffer.mkString("", "\n", "\n").getBytes(UTF_8)))
 
               case rdfReports: BufferedRDFReportsEH =>
                 val reportOS = new ByteArrayOutputStream()
-                RDFDataMgr.writeTriples(reportOS,rdfReports.getReports.toIterator.asJava)
+                RDFDataMgr.writeTriples(reportOS,rdfReports.getReportBuffer.toIterator.asJava)
                 Stream(ReportBytes(reportOS.toByteArray))
             }
           } else Stream.empty
@@ -138,54 +137,45 @@ object ReportFormat extends Enumeration {
 
 case class RowNr(nr: Long)
 
-trait BufferedErrorHandler[T] {
+abstract class BufferedErrorHandler[T,T2]( reportBuffer: mutable.Iterable[T],
+                                           violatedRowsBuffer: mutable.Iterable[T2] ) {
 
-  protected val corruptRows: mutable.HashSet[Long] = mutable.HashSet[Long]()
-
-  def getCorruptRows: mutable.HashSet[Long] = {
-    corruptRows
-  }
-
-//  protected val corruptRows: ListBuffer[Long] = ListBuffer[Long]()
-//
-//  def getCorruptRows: List[Long] = {
-//    corruptRows.toList
-//  }
-
-  protected val reports: ListBuffer[T] = ListBuffer[T]()
-
-  def getReports: List[T] = {
-
-    reports.toList
-  }
+  def getReportBuffer: mutable.Iterable[T] = reportBuffer
+  def getViolatedRowsBuffer: mutable.Iterable[T2] = violatedRowsBuffer
 }
 
-class BufferedTextReportsEH(rawLines: Array[String]) extends BufferedErrorHandler[String] with ErrorHandler{
+class BufferedTextReportsEH( rawLines: Array[String],
+                             reportBuffer: ListBuffer[String],
+                             violatedRowsBuffer: mutable.HashSet[Long] )
+
+  extends BufferedErrorHandler[String,Long]( reportBuffer, violatedRowsBuffer ) with ErrorHandler{
 
   override def warning(message: String, line: Long, col: Long): Unit = {
-    corruptRows.add(line)
-    reports.append(s"${rawLines(line.toInt-1)} # WRN@$line,$col $message")
+    violatedRowsBuffer.add(line)
+    reportBuffer.append(s"${rawLines(line.toInt-1)} # WRN@$col $message")
   }
 
   override def error(message: String, line: Long, col: Long): Unit = {
-    reports.append(s"${rawLines(line.toInt-1)} # ERR@$col $message")
+    reportBuffer.append(s"${rawLines(line.toInt-1)} # ERR@$col $message")
   }
 
   override def fatal(message: String, line: Long, col: Long): Unit = {
-    reports.append(s"${rawLines(line.toInt-1)} # FTL@$col $message")
+    reportBuffer.append(s"${rawLines(line.toInt-1)} # FTL@$col $message")
   }
-
-
 }
 
-class BufferedRDFReportsEH(rawLines: Array[String]) extends BufferedErrorHandler[Triple] with ErrorHandler{
+class BufferedRDFReportsEH( rawLines: Array[String],
+                            reportBuffer: ListBuffer[Triple],
+                            violatedRowsBuffer: mutable.HashSet[Long] )
+
+extends BufferedErrorHandler[Triple,Long]( reportBuffer, violatedRowsBuffer ) with ErrorHandler{
 
   def base: String = "http://dbpedia.org/debug/"
   def rIri: Regex = """<.*>""".r
   def rLit: Regex = """\".*\"""".r
 
   override def warning(message: String, line: Long, col: Long): Unit = {
-    corruptRows.add(line)
+    violatedRowsBuffer.add(line)
     construct("e",message,line,col)
   }
 
@@ -218,7 +208,7 @@ class BufferedRDFReportsEH(rawLines: Array[String]) extends BufferedErrorHandler
   }
 
   def appendReportBuffer(s: Node,p: Node,o: Node): Unit = {
-    reports.append(new org.apache.jena.graph.Triple(s,p,o))
+    reportBuffer.append(new org.apache.jena.graph.Triple(s,p,o))
   }
 
   def sha256FromString(string: String): String = {
