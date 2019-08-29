@@ -18,7 +18,8 @@ object DatabusDownloader {
     val hasVersion = versionParts.last
 
     val query: Query = QueryFactory.create(DataidQueries.queryVersionDownloadUrls(version.toString))
-    val resultSet = QueryExecutionFactory.sparqlService(endpoint, query).execSelect()
+    val queryExec = QueryExecutionFactory.sparqlService(endpoint, query)
+    val resultSet = queryExec.execSelect()
     val querySolution = resultSet.next()
 
     val dataidUrl = querySolution.getResource("dataset").getURI
@@ -53,6 +54,8 @@ object DatabusDownloader {
         skipIfExists = skipFilesIfExists
       )
     }
+    //TODO maybe use RDFConnection for auto-close in lambda
+    queryExec.close()
   }
 }
 //    val query =
