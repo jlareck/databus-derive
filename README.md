@@ -68,7 +68,11 @@ To derive and parse released datasets add entries under the `configuration/versi
 Execute the plugin.
 
 ```
-export MAVEN_OPTS="-Xmx24000m" # for 64Cores ~ 64GB to parse 5GB bz2
+# normal
+export MAVEN_OPTS="-Xmx24000m" 
+# for 64Cores ~ 64GB to parse 5GB bz2
+export MAVEN_OPTS="-Xmx64000m" 
+
 mvn databus-derive:clone-parse
 ```
 
