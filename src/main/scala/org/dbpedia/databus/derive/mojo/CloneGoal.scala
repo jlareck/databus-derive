@@ -24,7 +24,7 @@ import scala.sys.process.Process
   *
   * MAVEN Goal: retrieve and parse DBpedia databus dataset's by version
   */
-@Mojo(name = "clone", defaultPhase = LifecyclePhase.INSTALL, threadSafe = true)
+@Mojo(name = "clone",  threadSafe = true)
 class CloneGoal extends AbstractMojo {
 
   private val endpoint : String = "https://databus.dbpedia.org/repo/sparql"
