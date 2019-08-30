@@ -128,7 +128,8 @@ object NTripleParserCLI {
 
   //TODO move to FlatRDFTripleParser
   def parseFile(file: File, tOS: OutputStream, rOS: OutputStream,
-                par: Int, chunkS: Int, reportFormat: ReportFormat.Value, removeWarnings: Boolean = false): Unit ={
+                par: Int, chunkS: Int, reportFormat: ReportFormat.Value,
+                removeWarnings: Boolean = false): Unit ={
 
     val fIS = file.newInputStream
 

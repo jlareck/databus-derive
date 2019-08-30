@@ -119,7 +119,7 @@ class CloneGoal extends AbstractMojo {
 
     val finalBuildDirectory = new io.File(buildDirectory,"databus/derive/final")
 
-    if ( false || artifactId == "group-metadata" ) {
+    if ( artifactId == "group-metadata" ) {
 
       versions.asScala.foreach( versionStr => {
 
@@ -150,7 +150,8 @@ class CloneGoal extends AbstractMojo {
 
       collectReports(reportDirectory,finalBuildDirectory)
 
-      compressOutputWithBash(finalBuildDirectory)
+//      is now done for each file
+//      compressOutputWithBash(finalBuildDirectory)
 
       FileUtils.copyDirectory(finalBuildDirectory,packageDirectory)
     }
@@ -173,8 +174,8 @@ class CloneGoal extends AbstractMojo {
               Seq(
                 "bash",
                 "-c",
-                s"cat $$(find ${version.getAbsolutePath} -name '*_debug.txt') | " +
-                  s"lbzip2 > ${newArtifact.getAbsolutePath}/${artifact.getName}_debug.txt.bz2 ")
+                s"cat $$(find ${version.getAbsolutePath} -name '*_debug.txt.bz2') " +
+                  s"> ${newArtifact.getAbsolutePath}/${artifact.getName}_debug.txt.bz2 ")
             }
 
             System.err.println(s"[INFO] ${cmd.mkString(" ")}")
@@ -209,9 +210,9 @@ class CloneGoal extends AbstractMojo {
     else {
 
       //TODO from pom conf
-      val parFiles = 4
-      val parChunks = 8
-      val chunkSize = 10000
+//      val parFiles = 4
+//      val parChunks = 8
+//      val chunkSize = 10000
       /*
       reportFormat, removeWarnings
        */
@@ -250,6 +251,10 @@ class CloneGoal extends AbstractMojo {
             ReportFormat.TEXT,
             removeWarnings = true
           )
+
+          lbzip2File(targetFile)
+          lbzip2File(reportFile)
+
         }
         else {
 
@@ -258,6 +263,15 @@ class CloneGoal extends AbstractMojo {
         }
       })
     }
+  }
+
+  def lbzip2File(file: File): Unit = {
+
+    val cmd = Seq("bash", "-c", s"lbzip2  ${file.pathAsString}")
+
+    System.err.println(s"[INFO] ${cmd.mkString(" ")}")
+
+    Process(cmd).!
   }
 
   val pluginVersion = "1.3-SNAPSHOT"
