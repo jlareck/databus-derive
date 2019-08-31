@@ -51,8 +51,11 @@ object NTripleParser {
   }
 
   def parse(
-             tripleInput: InputStream, tripleOutput: OutputStream, reportOutput: OutputStream,
-             par: Int = 8, chunk: Int = 10000, reportFormat: ReportFormat.Value = ReportFormat.TEXT,
+             tripleInput: InputStream,
+             tripleOutput: OutputStream,
+             reportOutput: OutputStream,
+             par: Int = 8, chunk: Int = 10000,
+             reportFormat: ReportFormat.Value = ReportFormat.TEXT,
              removeWarnings: Boolean = false
            ): Unit = {
 

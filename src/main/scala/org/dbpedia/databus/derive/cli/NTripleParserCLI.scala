@@ -127,7 +127,7 @@ object NTripleParserCLI {
   }
 
   //TODO move to FlatRDFTripleParser
-  def parseFile(file: File, tOS: OutputStream, rOS: OutputStream,
+  def parseFile(file: File, parsedOS: OutputStream, reportOS: OutputStream,
                 par: Int, chunkS: Int, reportFormat: ReportFormat.Value,
                 removeWarnings: Boolean = false): Unit ={
 
@@ -141,13 +141,13 @@ object NTripleParserCLI {
             new BufferedInputStream(fIS))
       }
 
-      NTripleParser.parse(cis, tOS, rOS, par, chunkS, reportFormat, removeWarnings = removeWarnings)
+      NTripleParser.parse(cis, parsedOS, reportOS, par, chunkS, reportFormat, removeWarnings = removeWarnings)
 
     } catch {
 
       case ce: CompressorException =>
         System.err.println(s"[WARN] No compression found for ${file.name} - raw input")
-        NTripleParser.parse(fIS, tOS, rOS, par, chunkS, reportFormat, removeWarnings = removeWarnings)
+        NTripleParser.parse(fIS, parsedOS, reportOS, par, chunkS, reportFormat, removeWarnings = removeWarnings)
 
       case unknown: Throwable => println("[ERROR] Unknown exception: " + unknown)
     }

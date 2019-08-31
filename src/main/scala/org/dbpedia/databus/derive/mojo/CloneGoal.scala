@@ -20,14 +20,14 @@ import scala.sys.process.Process
 
 /** @author Marvin Hofer
   *
-  * mvn databus-derive:clone-parse
+  *         mvn databus-derive:clone-parse
   *
-  * MAVEN Goal: retrieve and parse DBpedia databus dataset's by version
+  *         MAVEN Goal: retrieve and parse DBpedia databus dataset's by version
   */
-@Mojo(name = "clone",  threadSafe = true)
+@Mojo(name = "clone", threadSafe = true)
 class CloneGoal extends AbstractMojo {
 
-  private val endpoint : String = "https://databus.dbpedia.org/repo/sparql"
+  private val endpoint: String = "https://databus.dbpedia.org/repo/sparql"
 
   @Parameter(defaultValue = "${session.executionRootDirectory}", readonly = true)
   val sessionRoot: java.io.File = null
@@ -67,11 +67,21 @@ class CloneGoal extends AbstractMojo {
   )
   val reportDirectory: java.io.File = null
 
+
   @Parameter(
     property = "databus.derive.packageDirectory",
     defaultValue = "${project.basedir}"
   )
   val packageDirectory: java.io.File = null
+
+  /**
+    * derived variables
+    */
+  lazy val downloadDirectoryBF: File = File(downloadDirectory.getAbsolutePath)
+  lazy val finalBuildDirectory = new io.File(buildDirectory, "databus/derive/final")
+  lazy val finalBuildDirectoryBF: File = File(finalBuildDirectory.getAbsolutePath)
+  lazy val reportDirectoryBF: File = File(reportDirectory.getAbsolutePath)
+
 
   @Parameter(
     property = "databus.derive.skipParsing",
@@ -117,11 +127,9 @@ class CloneGoal extends AbstractMojo {
 
   override def execute(): Unit = {
 
-    val finalBuildDirectory = new io.File(buildDirectory,"databus/derive/final")
+    if (artifactId == "group-metadata") {
 
-    if ( artifactId == "group-metadata" ) {
-
-      versions.asScala.foreach( versionStr => {
+      versions.asScala.foreach(versionStr => {
 
         System.err.println(s"[INFO] Looking for version: $versionStr")
         val versionIRI = IRIResolver.iriFactory().construct(versionStr)
@@ -132,28 +140,23 @@ class CloneGoal extends AbstractMojo {
           skipFilesIfExists = true
         )
 
-//        PomUtils.copyAllAndChangeGroup(downloadDirectory, finalBuildDirectory, groupId, version)
+        //        PomUtils.copyAllAndChangeGroup(downloadDirectory, finalBuildDirectory, groupId, version)
       })
 
-      if ( skipParsing ) {
 
+      if (skipParsing) {
         FileUtils.copyDirectory(downloadDirectory, finalBuildDirectory)
       }
       else {
-
-        parseDirectoryToDirectory(
-          sourceDirectory = File(downloadDirectory.getAbsolutePath),
-          reportDirectory = File(reportDirectory.getAbsolutePath),
-          targetDirectory = File(finalBuildDirectory.getAbsolutePath)
-        )
+        parseDownloadsToReportAndFinal()
       }
 
-      collectReports(reportDirectory,finalBuildDirectory)
+      //collectReports(reportDirectory, finalBuildDirectory)
 
-//      is now done for each file
-//      compressOutputWithBash(finalBuildDirectory)
+      //      is now done for each file
+      //      compressOutputWithBash(finalBuildDirectory)
 
-      FileUtils.copyDirectory(finalBuildDirectory,packageDirectory)
+      FileUtils.copyDirectory(finalBuildDirectory, packageDirectory)
     }
   }
 
@@ -167,8 +170,18 @@ class CloneGoal extends AbstractMojo {
 
           version => {
 
-            val newArtifact = new io.File(targetDirectory,s"${artifact.getName}/${version.getName}")
-            newArtifact
+            val newArtifact = new io.File(targetDirectory, s"${artifact.getName}/${version.getName}")
+
+            /**
+              * TODO Marvin check
+              * Why was this here?
+              * [WARNING] /home/shellmann/IdeaProjects/databus-derive/src/main/scala/org/dbpedia/databus/derive/mojo/CloneGoal.scala:171: a pure expression does nothing in statement position; you may be omitting necessary parentheses
+              *
+              * [WARNING] newArtifact
+              * [WARNING]
+              * [WARNING] one warning found
+              */
+            //newArtifact
 
             val cmd = {
               Seq(
@@ -188,7 +201,8 @@ class CloneGoal extends AbstractMojo {
 
   }
 
-  def compressOutputWithBash(directory: io.File): Int = {
+
+  def compressOutputWithBashDeprecated(directory: io.File): Int = {
 
     //TODO postfix operation notation, enable feature
 
@@ -199,52 +213,47 @@ class CloneGoal extends AbstractMojo {
     Process(cmd).!
   }
 
-  def parseDirectoryToDirectory( sourceDirectory: File,
-                                 targetDirectory: File,
-                                 reportDirectory: File ): Unit = {
+  /**
+    * works on class variables
+    */
+  def parseDownloadsToReportAndFinal(): Unit = {
 
-    if(! sourceDirectory.isDirectory) {
-
-      System.err.println(s"[ERROR] $sourceDirectory is no directory")
+    if (!downloadDirectoryBF.isDirectory) {
+      System.err.println(s"[ERROR] $downloadDirectoryBF is no directory")
     }
     else {
 
-      //TODO from pom conf
-//      val parFiles = 4
-//      val parChunks = 8
-//      val chunkSize = 10000
       /*
       reportFormat, removeWarnings
        */
 
       val rFilter = """(.*\.nt.*)|(.*\.ttl.*)""".r
 
-      val pool = findFilePathsInDirectory(sourceDirectory.toJava, Array[String]("*/*/*")).par
+      val pool = findFilePathsInDirectory(downloadDirectoryBF.toJava, Array[String]("*/*/*")).par
       pool.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(parFiles))
 
-      pool.foreach( subPath => {
+      pool.foreach(subPath => {
 
-        val targetArtifact = subPath.split("/")(0)
-        val targetVersion = subPath.split("/")(1)
+        val artifact = subPath.split("/")(0)
+        val version = subPath.split("/")(1)
 
-        val sourceFile = sourceDirectory / subPath
+        val downFile = downloadDirectoryBF / subPath
+        val finalFile = finalBuildDirectoryBF / artifact / version /
+          s"${downFile.nameWithoutExtension}.ttl"
 
-        val targetFile = targetDirectory / targetArtifact / targetVersion /
-          s"${sourceFile.nameWithoutExtension}.ttl"
+        finalFile.parent.createDirectoryIfNotExists()
 
-        targetFile.parent.createDirectoryIfNotExists()
-
-        val reportFile = reportDirectory / targetArtifact / targetVersion /
-          s"${sourceFile.nameWithoutExtension}_debug.txt"
+        val reportFile = reportDirectoryBF / artifact / version /
+          s"${downFile.nameWithoutExtension}_debug.txt"
 
         reportFile.parent.createDirectoryIfNotExists()
 
-        if( rFilter.pattern.matcher(sourceFile.name).matches ) {
+        if (rFilter.pattern.matcher(downFile.name).matches) {
 
-          System.err.println(s"[INFO] Parsing ${sourceFile.name}")
+          System.err.println(s"[INFO] Parsing ${downFile.name}")
           parseFile(
-            sourceFile,
-            targetFile.newOutputStream,
+            downFile,
+            finalFile.newOutputStream,
             reportFile.newOutputStream,
             parChunks,
             chunkSize,
@@ -252,19 +261,25 @@ class CloneGoal extends AbstractMojo {
             removeWarnings = true
           )
 
-          lbzip2File(targetFile)
+          lbzip2File(finalFile)
           lbzip2File(reportFile)
 
         }
         else {
 
-          System.err.println(s"[INFO] Skip parsing ${sourceFile.name}")
-          FileUtils.moveFile(sourceFile.toJava,targetFile.toJava)
+          System.err.println(s"[INFO] Skip parsing ${downFile.name}")
+          FileUtils.moveFile(downFile.toJava, finalFile.toJava)
         }
       })
     }
   }
 
+  /**
+    * compresses file to .bz2
+    * removes original
+    *
+    * @param file
+    */
   def lbzip2File(file: File): Unit = {
 
     val cmd = Seq("bash", "-c", s"lbzip2  ${file.pathAsString}")
@@ -294,10 +309,10 @@ class CloneGoal extends AbstractMojo {
         |
         |""".stripMargin
 
-//  def printLogoOnce(mavenlog: Log) = {
-//    if (!logoPrinted) {
-//      mavenlog.info(logo)
-//    }
-//    logoPrinted = true
-//  }
+  //  def printLogoOnce(mavenlog: Log) = {
+  //    if (!logoPrinted) {
+  //      mavenlog.info(logo)
+  //    }
+  //    logoPrinted = true
+  //  }
 }
