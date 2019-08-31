@@ -189,7 +189,7 @@ class CloneGoal extends AbstractMojo {
                 "-c",
                 s"cat $$(find ${version.getAbsolutePath} -name '*_debug.txt.bz2') " +
                   //TODO should be >> ?
-                  s"> ${newArtifact.getAbsolutePath}/${artifact.getName}_debug.txt.bz2 ")
+                  s">> ${newArtifact.getAbsolutePath}/${artifact.getName}_debug.txt.bz2 ")
             }
 
             System.err.println(s"[INFO] ${cmd.mkString(" ")}")
