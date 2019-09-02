@@ -16,6 +16,7 @@ import org.dbpedia.databus.derive.io.rdf.ReportFormat
 import scala.collection.JavaConverters._
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
+import scala.language.postfixOps
 import scala.sys.process.Process
 
 /** @author Marvin Hofer
@@ -123,7 +124,7 @@ class CloneGoal extends AbstractMojo {
     property = "databus.derive.chunkSize",
     defaultValue = "10000"
   )
-  val chunkSize: Int = 10000
+  val chunkSize: Int = 50000
 
   override def execute(): Unit = {
 
@@ -137,7 +138,8 @@ class CloneGoal extends AbstractMojo {
         DatabusDownloader.cloneVersionToDirectory(
           version = versionIRI,
           directory = files.File(downloadDirectory.getAbsolutePath),
-          skipFilesIfExists = true
+          skipFilesIfExists = true,
+          endpoint
         )
 
         //        PomUtils.copyAllAndChangeGroup(downloadDirectory, finalBuildDirectory, groupId, version)
@@ -151,9 +153,9 @@ class CloneGoal extends AbstractMojo {
         parseDownloadsToReportAndFinal()
       }
 
-      //collectReports(reportDirectory, finalBuildDirectory)
+      //      collectReports(reportDirectory, finalBuildDirectory)
 
-      //      is now done for each file
+      //      compression is now done for each file
       //      compressOutputWithBash(finalBuildDirectory)
 
       FileUtils.copyDirectory(finalBuildDirectory, packageDirectory)
@@ -172,24 +174,12 @@ class CloneGoal extends AbstractMojo {
 
             val newArtifact = new io.File(targetDirectory, s"${artifact.getName}/${version.getName}")
 
-            /**
-              * TODO Marvin check
-              * Why was this here?
-              * [WARNING] /home/shellmann/IdeaProjects/databus-derive/src/main/scala/org/dbpedia/databus/derive/mojo/CloneGoal.scala:171: a pure expression does nothing in statement position; you may be omitting necessary parentheses
-              *
-              * [WARNING] newArtifact
-              * [WARNING]
-              * [WARNING] one warning found
-              */
-            //newArtifact
-
             val cmd = {
               Seq(
                 "bash",
                 "-c",
                 s"cat $$(find ${version.getAbsolutePath} -name '*_debug.txt.bz2') " +
-                  //TODO should be >> ?
-                  s">> ${newArtifact.getAbsolutePath}/${artifact.getName}_debug.txt.bz2 ")
+                  s"> ${newArtifact.getAbsolutePath}/${artifact.getName}_debug.txt.bz2 ")
             }
 
             System.err.println(s"[INFO] ${cmd.mkString(" ")}")
@@ -204,8 +194,6 @@ class CloneGoal extends AbstractMojo {
 
 
   def compressOutputWithBashDeprecated(directory: io.File): Int = {
-
-    //TODO postfix operation notation, enable feature
 
     val cmd = Seq("bash", "-c", s"lbzip2 $$(find ${directory.getAbsolutePath} -regextype posix-egrep -regex '.*\\.(ttl|nt)')")
 
@@ -279,7 +267,7 @@ class CloneGoal extends AbstractMojo {
     * compresses file to .bz2
     * removes original
     *
-    * @param file
+    * @param file uncompressed File
     */
   def lbzip2File(file: File): Unit = {
 
@@ -295,7 +283,7 @@ class CloneGoal extends AbstractMojo {
   var logoPrinted = false
 
   //NOTE: NEEDS TO BE COMPATIBLE WITH TURTLE COMMENTS
-  val logo =
+  val logo : String =
     s"""|
         |
         |######
@@ -306,7 +294,7 @@ class CloneGoal extends AbstractMojo {
         |#     # #    #   #   #    # #    # #    # #    #
         |######  #    #   #   #    # #####   ####   ####
         |
-        |# Plugin version ${pluginVersion} - https://github.com/dbpedia/databus-maven-plugin
+        |# Plugin version $pluginVersion - https://github.com/dbpedia/databus-maven-plugin
         |
         |""".stripMargin
 

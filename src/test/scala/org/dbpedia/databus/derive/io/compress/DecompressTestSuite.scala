@@ -3,7 +3,6 @@ package org.dbpedia.databus.derive.io.compress
 import java.io.{BufferedInputStream, File, FileInputStream, FileOutputStream}
 import java.net.URL
 
-import org.apache.commons.compress.compressors.CompressorStreamFactory
 import org.apache.commons.io.IOUtils
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
@@ -23,12 +22,13 @@ class DecompressTestSuite extends FunSuite with BeforeAndAfterAll {
     downloadURL #> testFile !
 
     val inputStream = {
-      new CompressorStreamFactory()
-        .createCompressorInputStream(
-          new BufferedInputStream(
-            new FileInputStream(testFile)
+      CompressIO.decompressStreamAuto(
+        new BufferedInputStream(
+          new FileInputStream(
+            testFile
           )
         )
+      )
     }
 
     val outputStream = new FileOutputStream(testSink)

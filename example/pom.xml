@@ -23,8 +23,8 @@
         </executions>
         <configuration>
           <versions>
-            <version>https://databus.dbpedia.org/marvin/mappings/specific-mappingbased-properties/2019.08.01</version>
-            <version>https://databus.dbpedia.org/dbpedia/enrichment/mappingbased-literals/2019.03.01</version>
+            <version>https://databus.dbpedia.org/marvin/generic/geo-coordinates/2019.08.01</version>
+            <!--<version>https://databus.dbpedia.org/dbpedia/enrichment/mappingbased-literals/2019.03.01</version>-->
           </versions>
           <!--<packageDirectory>${project.basedir}</packageDirectory>-->
           <!--<reportDirectory>.reports</reportDirectory>-->

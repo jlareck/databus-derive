@@ -11,7 +11,8 @@ object DatabusDownloader {
 
   private val endpoint: String = "https://databus.dbpedia.org/repo/sparql"
 
-  def cloneVersionToDirectory(version: IRI, directory: File, skipFilesIfExists: Boolean = false): Unit = {
+  def cloneVersionToDirectory(version: IRI, directory: File,
+                              skipFilesIfExists: Boolean = false, endpoint: String = endpoint): Unit = {
 
     val versionParts = version.toString.split("/")
     val artifact = versionParts(versionParts.length - 2)

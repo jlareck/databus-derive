@@ -4,7 +4,7 @@ import java.io._
 
 import better.files.File
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream
-import org.apache.commons.compress.compressors.{CompressorException, CompressorStreamFactory}
+import org.dbpedia.databus.derive.io.compress.CompressIO
 import org.dbpedia.databus.derive.io.rdf.{NTripleParser, ReportFormat}
 import scopt._
 
@@ -22,7 +22,7 @@ object NTripleParserCLI {
 
   case class FlatRDFTripleParserConfig(input: File = null, output: Option[File] = None, report: Option[File] = None,
                                       parFiles: Int = 1, parChunks: Int = 3, chunkSize: Int = 200, compression: Boolean = true,
-                                      reportformat: ReportFormat.Value = ReportFormat.TEXT)
+                                      reportformat: ReportFormat.Value = ReportFormat.TEXT, discardWarning: Boolean = false)
 
   implicit def betterFileRead: Read[File] = Read.reads(File(_))
 
@@ -48,6 +48,9 @@ object NTripleParserCLI {
 
         opt[Unit]('x', "no-compression").maxOccurs(1).action((_,p) => p.copy(compression = false))
           .text("Disable GZIP compression for output files")
+
+        opt[Unit]( "discard-warnings").maxOccurs(1).action((_,p) => p.copy(discardWarning = true))
+          .text("discard-warnings")
 
         val parTemplate: Regex = """^(\d*)x(\d*)$""".r()
         opt[String]('p',"parallel").maxOccurs(1).action((t,p) => {
@@ -101,7 +104,7 @@ object NTripleParserCLI {
             }
             val rOS = getOrElseOS(rF,config.compression)(System.err)
 
-            parseFile(file, tOS, rOS, config.parChunks, config.chunkSize, config.reportformat)
+            parseFile(file, tOS, rOS, config.parChunks, config.chunkSize, config.reportformat, removeWarnings = config.discardWarning)
           })
         } else {
 
@@ -110,7 +113,7 @@ object NTripleParserCLI {
           val tOS = getOrElseOS(config.output, config.compression)(System.out)
           val rOS = getOrElseOS(config.report, config.compression)(System.err)
 
-          parseFile(config.input, tOS, rOS, config.parChunks, config.chunkSize, config.reportformat)
+          parseFile(config.input, tOS, rOS, config.parChunks, config.chunkSize, config.reportformat, removeWarnings = config.discardWarning)
         }
       case _ => optionParser.showUsage()
     }
@@ -131,26 +134,16 @@ object NTripleParserCLI {
                 par: Int, chunkS: Int, reportFormat: ReportFormat.Value,
                 removeWarnings: Boolean = false): Unit ={
 
-    val fIS = file.newInputStream
+    val fIS = file.newFileInputStream
 
-    try {
-
-      val cis = {
-        new CompressorStreamFactory()
-          .createCompressorInputStream(
-            new BufferedInputStream(fIS))
+      val cIS = {
+        CompressIO.decompressStreamAuto(
+          new BufferedInputStream(fIS)
+        )
       }
 
-      NTripleParser.parse(cis, parsedOS, reportOS, par, chunkS, reportFormat, removeWarnings = removeWarnings)
+      NTripleParser.parse(cIS, parsedOS, reportOS, par, chunkS, reportFormat, removeWarnings = removeWarnings)
 
-    } catch {
-
-      case ce: CompressorException =>
-        System.err.println(s"[WARN] No compression found for ${file.name} - raw input")
-        NTripleParser.parse(fIS, parsedOS, reportOS, par, chunkS, reportFormat, removeWarnings = removeWarnings)
-
-      case unknown: Throwable => println("[ERROR] Unknown exception: " + unknown)
-    }
   }
 }
 

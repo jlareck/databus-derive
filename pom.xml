@@ -108,6 +108,10 @@
                     <groupId>net.postgis</groupId>
                     <artifactId>postgis-jdbc</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.ibm.sparktc.sparkbench</groupId>
+                    <artifactId>sparkbench</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 

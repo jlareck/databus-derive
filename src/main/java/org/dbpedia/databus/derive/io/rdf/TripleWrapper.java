@@ -18,4 +18,5 @@ public class TripleWrapper extends Triple {
     public void setRow(long row) {
         this.row = row;
     }
+
 }
