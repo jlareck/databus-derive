@@ -2,6 +2,8 @@
 
 Extension to the general [databus-maven-plugin](https://github.com/dbpedia/databus-maven-plugin), used to download and clean datasets already released on the [databus](https://databus.dbpedia.org).
 
+** working beta** Note this will be moved to [Databus Client](https://github.com/dbpedia/databus-client)
+
 ## Setup 
 
 Maven install, need until added to maven repository.
