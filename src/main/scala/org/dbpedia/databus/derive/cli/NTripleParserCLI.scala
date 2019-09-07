@@ -142,8 +142,11 @@ object NTripleParserCLI {
         )
       }
 
-      NTripleParser.parse(cIS, parsedOS, reportOS, par, chunkS, reportFormat, removeWarnings = removeWarnings)
-
+      try {
+        NTripleParser.parse(cIS, parsedOS, reportOS, par, chunkS, reportFormat, removeWarnings = removeWarnings)
+      }catch {
+        case e:IOException => System.err.println(s"Caught IOException, skip file $file")
+      }
   }
 }
 

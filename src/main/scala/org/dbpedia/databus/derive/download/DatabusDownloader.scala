@@ -18,6 +18,7 @@ object DatabusDownloader {
     val artifact = versionParts(versionParts.length - 2)
     val hasVersion = versionParts.last
 
+    System.err.println(s"[INFO] download $version");
     val query: Query = QueryFactory.create(DataidQueries.queryVersionDownloadUrls(version.toString))
     val queryExec = QueryExecutionFactory.sparqlService(endpoint, query)
     val resultSet = queryExec.execSelect()

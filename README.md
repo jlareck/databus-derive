@@ -2,6 +2,8 @@
 
 **working beta** Note this will be moved to [Databus Client](https://github.com/dbpedia/databus-client). Extension to the general [databus-maven-plugin](https://github.com/dbpedia/databus-maven-plugin), used to download and clean datasets already released on the [databus](https://databus.dbpedia.org).
 
+Current caveats:
+* putting a version that does not exist into `<version>` will result in a `java.util.NoSuchElementException: QueryIterPlainWrapper` 
 
 
 ## Setup 
