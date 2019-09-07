@@ -85,10 +85,17 @@ class CloneGoal extends AbstractMojo {
 
 
   @Parameter(
-    property = "databus.derive.skipParsing",
-    defaultValue = "false"
+    property = "databus.derive.skipCloning",
+    defaultValue = "true"
   )
-  val skipParsing: Boolean = false
+  val skipCloning: Boolean = true
+
+
+  @Parameter(
+    property = "databus.derive.skipParsing",
+    defaultValue = "true"
+  )
+  val skipParsing: Boolean = true
 
   @Parameter(
     property = "databus.derive.deleteDownloadCache",
@@ -158,7 +165,9 @@ class CloneGoal extends AbstractMojo {
       //      compression is now done for each file
       //      compressOutputWithBash(finalBuildDirectory)
 
-      FileUtils.copyDirectory(finalBuildDirectory, packageDirectory)
+      if(!skipCloning) {
+        FileUtils.copyDirectory(finalBuildDirectory, packageDirectory)
+      }
     }
   }
 

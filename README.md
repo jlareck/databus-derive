@@ -1,22 +1,44 @@
 # Databus-derive-maven-plugin
 
-**working beta** Note this will be moved to [Databus Client](https://github.com/dbpedia/databus-client). Extension to the general [databus-maven-plugin](https://github.com/dbpedia/databus-maven-plugin), used to download and clean datasets already released on the [databus](https://databus.dbpedia.org).
+Extension to the [databus-maven-plugin](https://github.com/dbpedia/databus-maven-plugin), 
+used to download and derive new datasets already released on the [databus](https://databus.dbpedia.org).
+`mvn databus-derive:clone` downloads all data into the build directory `target/databus/derive/downloads`, `mvn clean` deletes the downloaded data again
 
+
+**working beta**
+* we are using it to derive  the monthly [DBpedia releases](http://dev.dbpedia.org/Download_DBpedia) from the MARVIN pre-releases (parse and remove syntax errors)
+* Code overlaps with the [Databus Client](https://github.com/dbpedia/databus-client). Merging and refactoring is required. 
+* 
 Current caveats:
 * putting a version that does not exist into `<version>` will result in a `java.util.NoSuchElementException: QueryIterPlainWrapper` 
-
+* using <version> is much less flexible than just giving the SPARQL query
+* can only parse RDF-NTriples as `.bz2` other data is simply copied
+* Per default parsing data and cloning (e.g. create new versions for the databus-maven-plugin) are deactivated.
+You can turn them on with `-DskipParsing=false -DskipCloning=false`, but beware the plugin needs three times the space of the data (easier to debug). 
 
 ## Setup 
-
-Maven install, need until added to maven repository.
-```
-git clone https://github.com/dbpedia/databus-derive.git
-cd databus-derive
-mvn clean install
+Add the snapshot plugin repository, not required if you already use the databus-maven-plugin
+```xml
+    <pluginRepositories>
+        <pluginRepository>
+            <id>archiva.internal</id>
+            <name>Internal Release Repository</name>
+            <url>http://databus.dbpedia.org:8081/repository/internal</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>archiva.snapshots</id>
+            <name>Internal Snapshot Repository</name>
+            <url>http://databus.dbpedia.org:8081/repository/snapshots</url>
+            <snapshots>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 ```
 
 Add the following plugin entry to the `BaseBuild(<build>)` element in your maven pom.
-```
+
+```xml  
   <build>
   ...
     <plugins>
@@ -26,9 +48,8 @@ Add the following plugin entry to the `BaseBuild(<build>)` element in your maven
         <version>1.0-SNAPSHOT</version>
         <executions>
           <execution>
-            <!--phase>initialize</phase-->
             <goals>
-              <goal>clone-parse</goal>
+              <goal>clone</goal>
             </goals>
           </execution>
         </executions>
@@ -36,38 +57,44 @@ Add the following plugin entry to the `BaseBuild(<build>)` element in your maven
           <versions>
             <version>https://databus.dbpedia.org/dbpedia/enrichment/mappingbased-literals/2019.03.01</version>
           </versions>
-          <targetDirectory>./</targetDirectory>
-          <reportDirectory>.reports</reportDirectory>
-          <downloadDirectory>.download</downloadDirectory>
-          <deleteDownloadCache>false</deleteDownloadCache>
-          <skipParsing>false</skipParsing>
+          <skipParsing>true</skipParsing>
+          <skipCloning>true</skipCloning>
         </configuration>
       </plugin>
     </plugins>
   </build>
 ```
 
-Note that you can also use a variable for configuration
-```
+Note that you can also use a variable for configuration. This configuration downloads the whole [DBpedia/mappings](https://databus.dbpedia.org/dbpedia/mappings) group.
+```xml
  <properties>
 	<!-- used for derive plugin, can be anything really -->
-        <databus.marvinversion>2019.08.01</databus.marvinversion>
+        <databus.deriveversion>2019.08.01</databus.deriveversion>
  </properties>
 
  <configuration>
           <versions>
-            <version>https://databus.dbpedia.org/marvin/mappings/geo-coordinates-mappingbased/${databus.marvinversion}</version>
-            <version>https://databus.dbpedia.org/marvin/mappings/instance-types/${databus.marvinversion}</version>
-            <version>https://databus.dbpedia.org/marvin/mappings/mappingbased-literals/${databus.marvinversion}</version>
-            <version>https://databus.dbpedia.org/marvin/mappings/mappingbased-objects-uncleaned/${databus.marvinversion}</version>
+            <version>https://databus.dbpedia.org/marvin/mappings/geo-coordinates-mappingbased/${databus.deriveversion}</version>
+            <version>https://databus.dbpedia.org/marvin/mappings/instance-types/${databus.deriveversion}</version>
+            <version>https://databus.dbpedia.org/marvin/mappings/mappingbased-literals/${databus.deriveversion}</version>
+            <version>https://databus.dbpedia.org/marvin/mappings/mappingbased-objects/${databus.deriveversion}</version>
+            <version>https://databus.dbpedia.org/marvin/mappings/mappingbased-objects-uncleaned/${databus.deriveversion}</version>
             <version>https://databus.dbpedia.org/marvin/mappings/specific-mappingbased-properties/${databus.marvinversion}</version>
           </versions>
+          <skipParsing>true</skipParsing>
+          <skipCloning>true</skipCloning>
  </configuration>
 ```
 
-## Usage
+Maven manual install
+```
+git clone https://github.com/dbpedia/databus-derive.git
+cd databus-derive
+mvn clean install
+```
 
-To derive and parse released datasets add entries under the `configuration/versions` section.
+
+## Usage
 
 Execute the plugin.
 
@@ -77,10 +104,10 @@ export MAVEN_OPTS="-Xmx24000m"
 # for 64Cores ~ 64GB to parse 5GB bz2
 export MAVEN_OPTS="-Xmx64000m" 
 
-mvn databus-derive:clone-parse
+mvn databus-derive:clone
 ```
 
-## Stanadalone Execution
+## Standalone Execution
 
 It is also possible to just create cleaned triples and pareslogs.
 ```
