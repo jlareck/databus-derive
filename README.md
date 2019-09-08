@@ -2,13 +2,15 @@
 
 Extension to the [databus-maven-plugin](https://github.com/dbpedia/databus-maven-plugin), 
 used to download and derive new datasets already released on the [databus](https://databus.dbpedia.org).
-`mvn databus-derive:clone` downloads all data into the build directory `target/databus/derive/downloads`, `mvn clean` deletes the downloaded data again
+`mvn databus-derive:clone` downloads all data into the build directory `target/databus/derive/downloads`, `mvn clean` deletes the downloaded data again.
+Later the plugin will feature better data housekeeping option, such as persisting some downloads in `${user.home}/.m2/databus` and caching often used conversions. 
 
 
 **working beta**
-* we are using it to derive  the monthly [DBpedia releases](http://dev.dbpedia.org/Download_DBpedia) from the MARVIN pre-releases (parse and remove syntax errors)
+* we are using it to derive the monthly [DBpedia releases](http://dev.dbpedia.org/Download_DBpedia) from the MARVIN pre-releases (parse and remove syntax errors)
 * Code overlaps with the [Databus Client](https://github.com/dbpedia/databus-client). Merging and refactoring is required. 
-* 
+
+
 Current caveats:
 * putting a version that does not exist into `<version>` will result in a `java.util.NoSuchElementException: QueryIterPlainWrapper` 
 * using <version> is much less flexible than just giving the SPARQL query
