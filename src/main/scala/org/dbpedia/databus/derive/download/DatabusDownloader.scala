@@ -31,12 +31,13 @@ object DatabusDownloader {
     /**
       * Download original pom
       */
-    FileDownloader.downloadUrlToDirectory(
+    //todo 
+    /*FileDownloader.downloadUrlToDirectory(
       url = new URL(dataidUrl.split("/").dropRight(2).mkString("/") + "/pom.xml"),
       directory = directory / artifact,
       createDirectory = true,
       skipIfExists = skipFilesIfExists
-    )
+    )*/
 
     /**
       * Download distributions

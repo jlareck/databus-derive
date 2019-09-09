@@ -12,7 +12,8 @@ import scala.io.Source
 
 class RDFParserTests extends FunSuite {
 
-  val testFile = File("/todo")
+  val testFile = File("ntfiles/marvin_generic_2019.08.30_infobox-properties_lang=de.ttl.bz2")
+  val testFileSBpedia = File("ntfiles/dbpedia_generic_2019.08.30_infobox-properties_lang=de.ttl.bz2")
 
   test("NTripleParser_remove_WARNINGS") {
 

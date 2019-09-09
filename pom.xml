@@ -35,6 +35,7 @@
         <scala.version>2.11.8</scala.version>
         <scala.compat.version>2.11</scala.compat.version>
 
+
         <!--maven license plugin-->
         <license.inceptionYear>2018</license.inceptionYear>
         <license.organizationName>Sebastian Hellmann (on behalf of the DBpedia Association)</license.organizationName>
@@ -79,6 +80,8 @@
             <artifactId>better-files_${scala.compat.version}</artifactId>
             <version>3.8.0</version>
         </dependency>
+
+
         <!--TODO upgrade to prevent postgres snapshot downloads
         https://github.com/SANSA-Stack/SANSA-RDF
         [INFO] |  |  +- org.aksw.jena-sparql-api:jena-sparql-api-views:jar:3.7.0-3:compile
@@ -230,9 +233,8 @@
     </reporting>
 
     <build>
-        <!--<sourceDirectory>src/main/scala</sourceDirectory>-->
-        <!--<testSourceDirectory>src/test/scala</testSourceDirectory>-->
-
+        <!--sourceDirectory>src/main/scala</sourceDirectory-->
+        <testSourceDirectory>src/test/scala</testSourceDirectory>
         <plugins>
             <plugin>
                 <!-- see http://davidb.github.com/scala-maven-plugin -->
@@ -300,6 +302,24 @@
                 <configuration>
                     <skipErrorNoDescriptorsFound>false</skipErrorNoDescriptorsFound>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest-maven-plugin</artifactId>
+                <version>2.0.0</version>
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                    <junitxml>.</junitxml>
+                    <filereports>WDF TestSuite.txt</filereports>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

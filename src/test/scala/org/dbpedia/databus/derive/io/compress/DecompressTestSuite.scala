@@ -50,7 +50,7 @@ class DecompressTestSuite extends FunSuite with BeforeAndAfterAll {
     val linesIn = Process(Seq("bash", "-c", s"lbzcat ${testFile.getAbsolutePath} | wc -l")).!!
     val linesOut = Process(Seq("bash", "-c", s"cat ${testSink.getAbsolutePath} | wc -l")).!!
 
-    assert(linesOut == linesIn, "Decompressed file should be have same line count as the compressed file")
+    assert(linesOut == linesIn, "Decompressed file should have same line count as the compressed file")
   }
 
   override def afterAll() {
