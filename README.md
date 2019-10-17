@@ -120,3 +120,12 @@ or
 ./flatRdfParser <flat-rdf-in> <flat-rdf-out> <report-out>
 ```
 for help add `--help`
+
+## Example
+
+```
+https://github.com/dbpedia/databus-derive.git
+git clone 
+wget http://dbpedia-mappings.tib.eu/release/mappings/mappingbased-literals/2019.10.01/mappingbased-literals_lang\=de.ttl.bz2
+./flatRdfParser mappingbased-literals_lang=de.ttl.bz2 --discard-warnings > mappingbased-literals_lang=de_cleaned.ttl
+```
