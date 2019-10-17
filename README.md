@@ -124,8 +124,8 @@ for help add `--help`
 ## Example
 
 ```
-https://github.com/dbpedia/databus-derive.git
-git clone 
+git clone https://github.com/dbpedia/databus-derive.git
+cd databus-derive/ && mvn clean install
 wget http://dbpedia-mappings.tib.eu/release/mappings/mappingbased-literals/2019.10.01/mappingbased-literals_lang\=de.ttl.bz2
 ./flatRdfParser mappingbased-literals_lang=de.ttl.bz2 --discard-warnings > mappingbased-literals_lang=de_cleaned.ttl
 ```
