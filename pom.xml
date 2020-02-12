@@ -81,6 +81,12 @@
             <version>3.8.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.scalaj</groupId>
+            <artifactId>scalaj-http_${scala.compat.version}</artifactId>
+            <version>2.4.2</version>
+        </dependency>
+
 
         <!--TODO upgrade to prevent postgres snapshot downloads
         https://github.com/SANSA-Stack/SANSA-RDF
