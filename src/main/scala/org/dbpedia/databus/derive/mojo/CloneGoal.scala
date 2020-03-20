@@ -286,7 +286,7 @@ class CloneGoal extends AbstractMojo {
     val cmd = Seq(
       "bash",
       "-c",
-      s"LC_ALL sort -S $sortMemory -u --parallel=$sortParallel ${file.pathAsString} " +
+      s"LC_ALL=C sort -S $sortMemory -u --parallel=$sortParallel ${file.pathAsString} " +
         s"| lbzip2 > ${file.pathAsString}.bz2 " +
         s"&& rm ${file.pathAsString}"
     )
