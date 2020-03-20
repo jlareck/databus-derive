@@ -280,7 +280,16 @@ class CloneGoal extends AbstractMojo {
     */
   def lbzip2File(file: File): Unit = {
 
-    val cmd = Seq("bash", "-c", s"lbzip2  ${file.pathAsString}")
+    val sortMemory = "20%"
+    val sortParallel = "8"
+
+    val cmd = Seq(
+      "bash",
+      "-c",
+      s"LC_ALL sort -S $sortMemory -u --parallel=$sortParallel ${file.pathAsString} " +
+        s"| lbzip2 > ${file.pathAsString}.bz2 " +
+        s"&& rm ${file.pathAsString}"
+    )
 
     System.err.println(s"[INFO] ${cmd.mkString(" ")}")
 
@@ -295,7 +304,7 @@ class CloneGoal extends AbstractMojo {
   val logo : String =
     s"""|
         |
-        |######
+        |######⎄s
         |#     #   ##   #####   ##   #####  #    #  ####
         |#     #  #  #    #    #  #  #    # #    # #
         |#     # #    #   #   #    # #####  #    #  ####
