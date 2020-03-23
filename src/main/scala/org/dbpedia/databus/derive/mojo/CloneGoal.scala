@@ -17,6 +17,7 @@ import scala.collection.JavaConverters._
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
 import scala.language.postfixOps
+import scala.sys.process
 import scala.sys.process.Process
 
 /** @author Marvin Hofer
@@ -249,15 +250,21 @@ class CloneGoal extends AbstractMojo {
         if (rFilter.pattern.matcher(downFile.name).matches) {
 
           System.err.println(s"[INFO] Parsing ${downFile.name}")
+          val finalFileOutputStream : java.io.OutputStream = finalFile.newOutputStream
+          val reportFileOutputStream : java.io.OutputStream  =  reportFile.newOutputStream
+
           parseFile(
             downFile,
-            finalFile.newOutputStream,
-            reportFile.newOutputStream,
+            finalFileOutputStream,
+            reportFileOutputStream,
             parChunks,
             chunkSize,
             ReportFormat.TEXT,
             removeWarnings = true
           )
+
+          finalFileOutputStream.close()
+          reportFileOutputStream.close()
 
           lbzip2File(finalFile)
           lbzip2File(reportFile)
@@ -283,7 +290,7 @@ class CloneGoal extends AbstractMojo {
     val sortMemory = "20%"
     val sortParallel = "8"
 
-    val cmd = Seq(
+    val cmd: Seq[String] = Seq(
       "bash",
       "-c",
       s"LC_ALL=C sort -S $sortMemory -u --parallel=$sortParallel ${file.pathAsString} " +
@@ -293,7 +300,11 @@ class CloneGoal extends AbstractMojo {
 
     System.err.println(s"[INFO] ${cmd.mkString(" ")}")
 
-    Process(cmd).!
+    val process = Process(cmd).run()
+    val exitValue = process.exitValue()
+    process.destroy()
+   
+
   }
 
   val pluginVersion = "1.3-SNAPSHOT"
