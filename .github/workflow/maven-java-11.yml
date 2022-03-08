@@ -5,9 +5,9 @@ name: Java 11 CI with Maven
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, update-jena-4.3.0 ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, update-jena-4.3.0 ]
 
 jobs:
   build:
