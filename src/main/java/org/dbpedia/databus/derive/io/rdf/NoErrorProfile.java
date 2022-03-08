@@ -1,6 +1,7 @@
 package org.dbpedia.databus.derive.io.rdf;
 
 import org.apache.jena.datatypes.RDFDatatype;
+import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.iri.IRI;
@@ -21,14 +22,10 @@ class NoErrorProfile implements ParserProfile {
     }
 
     @Override
-    public IRI makeIRI(String uriStr, long line, long col) {
-        return base.makeIRI(uriStr, line, col);
+    public void setBaseIRI(String s) {
+        base.setBaseIRI(s);
     }
 
-    @Override
-    public void setIRIResolver(IRIResolver resolver) {
-        base.setIRIResolver(resolver);
-    }
 
     @Override
     public Triple createTriple(Node subject, Node predicate, Node object, long line, long col) {
@@ -68,6 +65,21 @@ class NoErrorProfile implements ParserProfile {
     @Override
     public Node createBlankNode(Node scope, long line, long col) {
         return base.createBlankNode(scope, line, col);
+    }
+
+    @Override
+    public Node createTripleNode(Node node, Node node1, Node node2, long l, long l1) {
+        return null;
+    }
+
+    @Override
+    public Node createTripleNode(Triple triple, long l, long l1) {
+        return null;
+    }
+
+    @Override
+    public Node createGraphNode(Graph graph, long l, long l1) {
+        return null;
     }
 
     @Override

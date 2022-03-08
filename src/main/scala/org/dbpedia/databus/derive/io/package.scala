@@ -1,9 +1,9 @@
 package org.dbpedia.databus.derive
 
+import net.sansa_stack.rdf.common.io.ntriples.JenaTripleToNTripleString
+
 import java.io.{ByteArrayOutputStream, File, FileInputStream, FileWriter}
 import java.util.Collections
-
-import net.sansa_stack.rdf.spark.io.ntriples.JenaTripleToNTripleString
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.BZip2Codec

@@ -32,8 +32,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!--scala-->
-        <scala.version>2.11.8</scala.version>
-        <scala.compat.version>2.11</scala.compat.version>
+        <scala.version>2.12.15</scala.version>
+        <scala.compat.version>2.12</scala.compat.version>
 
 
         <!--maven license plugin-->
@@ -42,8 +42,8 @@
         <license.licenseName>agpl_v3</license.licenseName>
 
         <maven.plugin.tools.version>3.6.0</maven.plugin.tools.version>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
     </properties>
 
     <dependencies>
@@ -103,7 +103,7 @@
         <dependency>
             <groupId>net.sansa-stack</groupId>
             <artifactId>sansa-rdf-spark_${scala.compat.version}</artifactId>
-            <version>0.6.0</version>
+            <version>0.8.0-RC2-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -138,20 +138,20 @@
         <dependency>
             <groupId>org.apache.jena</groupId>
             <artifactId>jena-core</artifactId>
-            <version>3.13.1</version>
+            <version>4.3.0</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.jena/jena-arq -->
         <dependency>
             <groupId>org.apache.jena</groupId>
             <artifactId>jena-arq</artifactId>
-            <version>3.13.1</version>
+            <version>4.3.0</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.spark/spark-streaming -->
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-streaming_2.11</artifactId>
+            <artifactId>spark-streaming_${scala.compat.version}</artifactId>
             <version>2.4.0</version>
             <!--<scope>provided</scope>-->
         </dependency>
@@ -215,6 +215,17 @@
             <name>Internal Snapshot Repository</name>
             <url>http://databus.dbpedia.org:8081/repository/snapshots</url>
         </repository>
+        <repository>
+            <id>maven.aksw.snapshots</id>
+            <name>AKSW Snapshot Repository</name>
+            <url>https://maven.aksw.org/archiva/repository/snapshots</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+        </repository>
     </repositories>
 
     <distributionManagement>
@@ -251,7 +262,7 @@
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
-                <version>3.4.4</version>
+                <version>4.5.6</version>
                 <configuration>
                     <jvmArgs>
                         <jvmArg>-Xms64m</jvmArg>
@@ -267,10 +278,9 @@
         <testSourceDirectory>src/test/scala</testSourceDirectory>
         <plugins>
             <plugin>
-                <!-- see http://davidb.github.com/scala-maven-plugin -->
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>4.5.6</version>
                 <executions>
                     <execution>
                         <goals>
@@ -279,35 +289,25 @@
                         </goals>
                         <configuration>
                             <args>
-                                <!--<arg>-make:transitive</arg>-->
-                                <arg>-dependencyfile</arg>
-                                <arg>${project.build.directory}/.scala_dependencies</arg>
-                                <arg>-deprecation</arg>
-                                <arg>-feature</arg>
+                                <arg>-nobootcp</arg>
                             </args>
                         </configuration>
                     </execution>
                 </executions>
                 <configuration>
-                    <recompileMode>incremental</recompileMode>
+                    <scalaVersion>${scala.version}</scalaVersion>
                     <launchers>
-                        <!--<launcher>-->
-                            <!--<id>parse</id>-->
-                            <!--<mainClass>org.dbpedia.databus.derive.DeriveCli</mainClass>-->
-                            <!--<jvmArgs>-->
-                                <!--<jvmArg>${vmXmx}</jvmArg>-->
-                            <!--</jvmArgs>-->
-                        <!--</launcher>-->
                         <launcher>
-                            <id>flatRdfParser</id>
-                            <mainClass>org.dbpedia.databus.derive.cli.NTripleParserCLI</mainClass>
-                            <jvmArgs>
-                                <jvmArg>${vmXmx}</jvmArg>
-                            </jvmArgs>
+                            <id>databusclient</id>
+                            <mainClass>org.dbpedia.databus.client.main.Main</mainClass>
                         </launcher>
                     </launchers>
+                    <args>
+                        <arg>-nobootcp</arg>
+                    </args>
                 </configuration>
             </plugin>
+
             <!--
             USE THIS ONCE https://github.com/SANSA-Stack/SANSA-Stack/issues/4 is resolved
             -->

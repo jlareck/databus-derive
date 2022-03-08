@@ -5,7 +5,6 @@ import java.math.BigInteger
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets.UTF_8
 import java.security.MessageDigest
-
 import cats.effect.{ContextShift, IO}
 import fs2.{Pure, Stream, io, text}
 import net.sansa_stack.rdf.benchmark.io.ReadableByteChannelFromIterator
@@ -13,6 +12,7 @@ import net.sansa_stack.rdf.common.io.riot.tokens.TokenizerTextForgiving
 import org.apache.jena.atlas.io.PeekReader
 import org.apache.jena.datatypes.xsd.XSDDatatype
 import org.apache.jena.graph.{Node, NodeFactory, Triple}
+import org.apache.jena.irix.{IRIx, IRIxResolver}
 import org.apache.jena.riot.system._
 import org.apache.jena.riot.{RDFDataMgr, RIOT}
 
@@ -80,7 +80,7 @@ object NTripleParser {
 
         val parserProfile = {
           new ParserProfileStd(RiotLib.factoryRDF, errorHandler,
-            IRIResolver.create, PrefixMapFactory.createForInput,
+            IRIxResolver.create("http://example.org/").build(), PrefixMapFactory.create,
             RIOT.getContext.copy, true, true)
         }
 

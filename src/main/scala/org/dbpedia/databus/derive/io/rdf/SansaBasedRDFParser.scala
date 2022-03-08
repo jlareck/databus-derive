@@ -1,7 +1,6 @@
 package org.dbpedia.databus.derive.io.rdf
 
 import java.io.File
-
 import net.sansa_stack.rdf.benchmark.io.ReadableByteChannelFromIterator
 import net.sansa_stack.rdf.common.io.riot.tokens.TokenizerTextForgiving
 import net.sansa_stack.rdf.spark.io._
@@ -9,6 +8,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.hadoop.io.compress.BZip2Codec
 import org.apache.jena.atlas.io.PeekReader
 import org.apache.jena.graph.Triple
+import org.apache.jena.irix.IRIxResolver
 import org.apache.jena.riot.RIOT
 import org.apache.jena.riot.system._
 import org.apache.spark.rdd.RDD
@@ -60,7 +60,7 @@ object SansaBasedRDFParser {
 
       val parserProfile = NonSerializableObjectWrapper {
         new ParserProfileStd(RiotLib.factoryRDF, errorHandler,
-        IRIResolver.create, PrefixMapFactory.createForInput,
+        IRIxResolver.create.build(), PrefixMapFactory.create,
         RIOT.getContext.copy, true, true)
       }
 
